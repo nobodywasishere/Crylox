@@ -1,0 +1,13 @@
+name: crylox
+version: 0.1.0
+
+authors:
+  - Margret Riegert <margret@eowyn.net>
+
+targets:
+  crylox:
+    main: src/crylox.cr
+
+crystal: 1.6.2
+
+license: MIT
