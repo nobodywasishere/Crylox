@@ -1,4 +1,4 @@
-# crylox - Crystal Lox Interpreter
+# Crylox - Crystal Lox Interpreter
 
 TODO: Write a description here
 
