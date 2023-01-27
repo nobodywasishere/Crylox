@@ -7,6 +7,7 @@ module Crylox
     @start = 0
     @current = 0
     @line = 1
+    @block_comments = 0
 
     def initialize(source : String)
       @source = source
@@ -82,6 +83,8 @@ module Crylox
           while peek() != '\n' && !at_end?
             advance()
           end
+        elsif match('*')
+          comment()
         else
           addToken(TokenType::SLASH)
         end
@@ -193,6 +196,18 @@ module Crylox
       advance()
       value = @source[@start+1..@current-2]
       addToken(TokenType::STRING, value)
+    end
+
+    private def comment
+      @block_comments += 1
+      while @block_comments > 0 && !at_end?
+        if peek() == '/' && peekNext() == '*'
+          @block_comments += 1
+        elsif peek() == '*' && peekNext() == '/'
+          @block_comments -= 1
+        end
+        advance()
+      end
     end
   end
 end
