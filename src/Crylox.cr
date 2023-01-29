@@ -34,7 +34,7 @@ module Crylox
     end
 
     private def run(source : String)
-      scanner = Scanner.new(source)
+      scanner = Scanner::Scanner.new(source)
       tokens = scanner.scanTokens()
 
       tokens.each do |token|

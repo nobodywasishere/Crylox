@@ -1,7 +1,7 @@
 require "./Token"
 require "./TokenTypes"
 
-module Crylox
+module Crylox::Scanner
   class Scanner
 
     @start = 0
@@ -78,7 +78,7 @@ module Crylox
       when ' ', '\r', '\t'
         nil
       when '/'
-        if match('/')
+        if peek() == '/'
           while peek() != '\n' && !at_end?
             advance()
           end
