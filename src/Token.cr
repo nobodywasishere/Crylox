@@ -2,10 +2,10 @@ require "./TokenTypes"
 
 module Crylox
   class Token
-    @type : TokenType
-    @lexeme : String
-    @literal : String | Float64 | Nil
-    @line : Int32
+    getter type : TokenType
+    getter lexeme : String
+    getter literal : String | Float64 | Nil
+    getter line : Int32
 
     def initialize(type : TokenType, lexeme : String, literal, line : Int32)
       @type = type
