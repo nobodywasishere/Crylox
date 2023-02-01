@@ -1,13 +1,15 @@
 require "./TokenTypes"
 
 module Crylox
+  alias LiteralType = String | Float64 | Bool | Nil
+
   class Token
     getter type : TokenType
     getter lexeme : String
-    getter literal : String | Float64 | Bool | Nil
+    getter literal : LiteralType
     getter line : Int32
 
-    def initialize(type : TokenType, lexeme : String, literal, line : Int32)
+    def initialize(type : TokenType, lexeme : String, literal : LiteralType, line : Int32)
       @type = type
       @lexeme = lexeme
       @literal = literal
@@ -15,7 +17,7 @@ module Crylox
     end
 
     def to_s
-      return "#{@type} #{@lexeme.inspect} #{@literal.inspect}"
+      return "#{@type} #{@lexeme} #{@literal.inspect}"
     end
   end
 end

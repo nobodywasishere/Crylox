@@ -36,9 +36,9 @@ module Crylox::Expr
   end
 
   class Literal < Expr
-    getter value : String | Float64 | Bool | Nil
+    getter value : LiteralType
 
-    def initialize(value : String | Float64 | Bool | Nil)
+    def initialize(value : LiteralType)
       @value = value
     end
 

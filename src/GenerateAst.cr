@@ -13,7 +13,7 @@ module Crylox::Tools
         ["expression", "#{baseName}"]
       ],
       "Literal" => [
-        ["value", "String | Float64 | Bool | Nil"]
+        ["value", "LiteralType"]
       ],
       "Unary" => [
         ["operator", "Token"],

@@ -107,7 +107,7 @@ module Crylox::Scanner
         advance()
       end
 
-      text = @source[@start, @current-1]
+      text = @source[@start..@current-1]
       if @keywords.keys.includes? text
         type = @keywords[text]
       else

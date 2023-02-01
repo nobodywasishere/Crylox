@@ -2,11 +2,14 @@
 
 require "./Scanner"
 require "./Parser"
+require "./Interpreter"
 require "./AstPrinter"
 
 module Crylox
   class Crylox
     @@hadError : Bool = false
+    @@hadExecError : Bool = false
+    @@interpreter : Interpreter::Interpreter = Interpreter::Interpreter.new()
 
     def main(args : Array(String))
       if args.size > 1
@@ -22,6 +25,7 @@ module Crylox
       bytes = File.read(path)
       run(bytes)
       exit(65) if @@hadError
+      exit(70) if @@hadExecError
     end
 
     private def runPrompt
@@ -34,6 +38,7 @@ module Crylox
           break
         end
         @@hadError = false
+        @@hadExecError = false
       end
     end
 
@@ -41,7 +46,7 @@ module Crylox
       scanner = Scanner::Scanner.new(source)
       tokens = scanner.scanTokens()
 
-      puts "Tokens:"
+      puts "# Tokens:"
       tokens.each do |token|
         puts token.to_s
       end
@@ -49,8 +54,12 @@ module Crylox
       parser = Parser::Parser.new(tokens)
       expression : Expr::Expr | Nil = parser.parse()
       return if @@hadError || expression.nil?
-      puts "Ast:"
+
+      puts "# Ast:"
       puts Ast::AstPrinter.new().print(expression)
+
+      puts "# Interpreted:"
+      @@interpreter.interpret(expression)
     end
 
     def error(line : Int32, message : String)
@@ -69,6 +78,11 @@ module Crylox
       else
         report(token.line, " at '#{token.lexeme}'", message)
       end
+    end
+
+    def exec_error(e : Interpreter::ExecError)
+      @@hadExecError = true
+      STDERR.puts "#{e.message}\n[line #{e.token.line}]"
     end
   end
 end
