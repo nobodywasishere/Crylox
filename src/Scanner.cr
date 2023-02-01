@@ -10,7 +10,7 @@ module Crylox::Scanner
 
     def initialize(source : String)
       @source = source
-      @tokens = [] of Array(Token)
+      @tokens = [] of Token
       @keywords = {
         "and" => TokenType::AND,
         "class" => TokenType::CLASS,
@@ -37,7 +37,7 @@ module Crylox::Scanner
         scanToken()
       end
 
-      @tokens.push([Token.new(TokenType::EOF, "", nil, @line)])
+      @tokens << Token.new(TokenType::EOF, "", nil, @line)
       return @tokens
     end
 
@@ -148,10 +148,6 @@ module Crylox::Scanner
       return @source[@current+1]
     end
 
-    private def alpha?(c : Char)
-
-    end
-
     private def numeric?(c : Char)
       c.ascii_number?
     end
@@ -176,7 +172,7 @@ module Crylox::Scanner
 
     private def addToken(type : TokenType, literal)
       text = @source[@start..@current-1]
-      @tokens.push([Token.new(type, text, literal, @line)])
+      @tokens << Token.new(type, text, literal, @line)
     end
 
     private def string

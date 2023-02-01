@@ -4,7 +4,7 @@ module Crylox
   class Token
     getter type : TokenType
     getter lexeme : String
-    getter literal : String | Float64 | Nil
+    getter literal : String | Float64 | Bool | Nil
     getter line : Int32
 
     def initialize(type : TokenType, lexeme : String, literal, line : Int32)
@@ -15,7 +15,7 @@ module Crylox
     end
 
     def to_s
-      return "#{@type} #{@lexeme} #{@literal}"
+      return "#{@type} #{@lexeme.inspect} #{@literal.inspect}"
     end
   end
 end

@@ -1,4 +1,4 @@
-#!/usr/bin/env crystal
+#!/usr/bin/env -S crystal run -Dgenerate_ast_main
 
 module Crylox::Tools
   def self.main(args)
@@ -13,7 +13,7 @@ module Crylox::Tools
         ["expression", "#{baseName}"]
       ],
       "Literal" => [
-        ["value", "String | Float64 | Nil"]
+        ["value", "String | Float64 | Bool | Nil"]
       ],
       "Unary" => [
         ["operator", "Token"],
@@ -56,4 +56,6 @@ module Crylox::Tools
   end
 end
 
-Crylox::Tools.main(ARGV)
+{% if flag?(:generate_ast_main) %}
+  Crylox::Tools.main(ARGV)
+{% end %}

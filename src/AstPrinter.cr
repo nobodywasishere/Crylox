@@ -1,3 +1,5 @@
+#!/usr/bin/env -S crystal run -Dast_printer_main
+
 require "./Expr.cr"
 
 module Crylox::Ast
@@ -6,7 +8,7 @@ module Crylox::Ast
   end
 
   class AstPrinter < Visitor
-    def print(expr : Expr::Expr) : String
+    def print(expr : Expr::Expr) : String | Nil
       return expr.accept(self)
     end
 
@@ -55,4 +57,6 @@ module Crylox::Ast
   end
 end
 
-Crylox::Ast.ast_test(ARGV)
+{% if flag?(:ast_printer_main) %}
+  Crylox::Ast.ast_test(ARGV)
+{% end %}
