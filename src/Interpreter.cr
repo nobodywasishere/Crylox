@@ -1,5 +1,7 @@
 require "./AstPrinter"
+require "./Environment"
 require "./Expr"
+require "./Stmt"
 require "./Token"
 require "./TokenTypes"
 
@@ -14,10 +16,13 @@ module Crylox::Interpreter
   end
 
   class Interpreter < Ast::Visitor
-    def interpret(expression : Expr::Expr)
+    @env : Env::Env = Env::Env.new()
+
+    def interpret(statements : Array(Stmt::Stmt | Nil))
       begin
-        value : LiteralType = evaluate(expression)
-        puts stringify(value)
+        statements.each do |statement|
+          execute(statement) if !statement.nil?
+        end
       rescue e : ExecError
         Crylox.new().exec_error(e)
       end
@@ -112,6 +117,10 @@ module Crylox::Interpreter
       return nil # Should be unreachable
     end
 
+    def visitVariableExpr(expr : Expr::Variable) : LiteralType
+      return @env.get(expr.name)
+    end
+
     # private def operand_num?(operator : Token, operand : LiteralType) : Nil
     #   return if operand.is_a? Float64
     #   raise ExecError.new("Operand must be a number", nil, operator)
@@ -143,8 +152,56 @@ module Crylox::Interpreter
       return object.to_s
     end
 
-    private def evaluate(expr : Expr::Expr) : LiteralType
+    private def evaluate(expr : Expr::Expr | Nil) : LiteralType
+      return nil if expr.nil?
       return expr.accept(self)
+    end
+
+    private def execute(stmt : Stmt::Stmt)
+      stmt.accept(self)
+    end
+
+    def visitBlockStmt(stmt : Stmt::Block) : Nil
+      executeBlock(stmt.statements, Env::Env.new(@env))
+    end
+
+    def executeBlock(statements : Array(Stmt::Stmt), env : Env::Env)
+      previous = @env
+      begin
+        @env = env
+        statements.each do |statement|
+          execute(statement)
+        end
+      ensure
+        @env = previous
+      end
+    end
+
+    def visitExpressionStmt(stmt : Stmt::Expression)
+      evaluate(stmt.expression)
+      return nil
+    end
+
+    def visitPrintStmt(stmt : Stmt::Print)
+      value = evaluate(stmt.expression)
+      STDOUT.puts(stringify(value))
+      return nil
+    end
+
+    def visitVarStmt(stmt : Stmt::Var)
+      value : LiteralType = nil
+      if !stmt.initializer.nil?
+        value = evaluate(stmt.initializer)
+      end
+
+      @env.define(stmt.name.lexeme, value)
+      return nil
+    end
+
+    def visitAssignExpr(expr : Expr::Assign) : LiteralType
+      value : LiteralType = evaluate(expr.value)
+      @env.assign(expr.name, value)
+      return value
     end
   end
 end

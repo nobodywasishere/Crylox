@@ -1,4 +1,5 @@
 require "./Expr"
+require "./Stmt"
 require "./Token"
 require "./TokenTypes"
 
@@ -18,16 +19,85 @@ module Crylox::Parser
       @tokens = tokens
     end
 
-    def parse() : Expr::Expr | Nil
+    def parse() : Array(Stmt::Stmt | Nil) | Nil
+      statements = [] of Stmt::Stmt | Nil
+      while !at_end?
+        statements << declaration()
+      end
+      return statements
+    end
+
+    private def expression() : Expr::Expr
+      return assignment()
+    end
+
+    private def declaration() : Stmt::Stmt | Nil
       begin
-        return expression()
-      rescue ParseError
+        return varDeclaration() if match(TokenType::VAR)
+        return statement()
+      rescue e : ParseError
+        synchronize()
         return nil
       end
     end
 
-    private def expression() : Expr::Expr
-      return equality()
+    private def statement() : Stmt::Stmt
+      return printStatement() if match(TokenType::PRINT)
+      return Stmt::Block.new(block()) if match(TokenType::LEFT_BRACE)
+      return expressionStatement()
+    end
+
+    private def printStatement() : Stmt::Stmt
+      value : Expr::Expr = expression()
+      consume(TokenType::SEMICOLON, "Expected ';' after value.")
+      return Stmt::Print.new(value)
+    end
+
+    private def varDeclaration() : Stmt::Stmt
+      name : Token = consume(TokenType::IDENTIFIER, "Expected variable name.")
+
+      initializer : Expr::Expr | Nil = nil
+      if match(TokenType::EQUAL)
+        initializer = expression()
+      end
+
+      consume(TokenType::SEMICOLON, "Expected ';' after variable declaration")
+      return Stmt::Var.new(name, initializer)
+    end
+
+    private def expressionStatement() : Stmt::Stmt
+      expr : Expr::Expr = expression()
+      consume(TokenType::SEMICOLON, "Expect ';' after expression.")
+      return Stmt::Expression.new(expr)
+    end
+
+    private def block() : Array(Stmt::Stmt)
+      statements = [] of Stmt::Stmt
+      while (!check(TokenType::RIGHT_BRACE) && !at_end?)
+        dec = declaration()
+        statements << dec if !dec.nil?
+      end
+
+      consume(TokenType::RIGHT_BRACE, "Expected '}' after block.")
+      return statements;
+    end
+
+    private def assignment() : Expr::Expr
+      expr : Expr::Expr = equality()
+
+      if match(TokenType::EQUAL)
+        equals : Token = previous()
+        value : Expr::Expr = assignment()
+
+        if expr.is_a? Expr::Variable
+          name : Token = expr.name
+          return Expr::Assign.new(name, value)
+        end
+
+        parse_error(equals, "Invalid assignment target.")
+      end
+
+      return expr
     end
 
     private def equality() : Expr::Expr
@@ -85,6 +155,7 @@ module Crylox::Parser
       return Expr::Literal.new(true) if match(TokenType::TRUE)
       return Expr::Literal.new(nil) if match(TokenType::NIL)
       return Expr::Literal.new(previous().literal()) if match(TokenType::NUMBER, TokenType::STRING)
+      return Expr::Variable.new(previous()) if match(TokenType::IDENTIFIER)
 
       if match(TokenType::LEFT_PAREN)
         expr : Expr::Expr = expression()
@@ -106,8 +177,11 @@ module Crylox::Parser
     end
 
     private def consume(type : TokenType, message : String) : Token
-      return advance() if check(type)
-      raise parse_error(peek(), message)
+      if check(type)
+        return advance()
+      else
+        raise parse_error(peek(), message)
+      end
     end
 
     private def check(type : TokenType) : Bool

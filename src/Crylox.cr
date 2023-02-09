@@ -45,21 +45,30 @@ module Crylox
     private def run(source : String)
       scanner = Scanner::Scanner.new(source)
       tokens = scanner.scanTokens()
+      debug = true
 
-      puts "# Tokens:"
-      tokens.each do |token|
-        puts token.to_s
+      # if debug
+      #   puts "!! Tokens:"
+      #   tokens.each do |token|
+      #     puts token.to_s
+      #   end
+      # end
+
+      if debug
+        puts "!! Parser:"
       end
 
       parser = Parser::Parser.new(tokens)
-      expression : Expr::Expr | Nil = parser.parse()
-      return if @@hadError || expression.nil?
+      statements : Array(Stmt::Stmt | Nil) | Nil = parser.parse()
+      return if @@hadError || statements.nil? || statements.includes? nil
 
-      puts "# Ast:"
-      puts Ast::AstPrinter.new().print(expression)
+      if debug
+        puts "!! Ast:"
+        puts Ast::AstPrinter.new().print(statements)
 
-      puts "# Interpreted:"
-      @@interpreter.interpret(expression)
+        puts "!! Interpreted:"
+      end
+      @@interpreter.interpret(statements)
     end
 
     def error(line : Int32, message : String)
@@ -74,9 +83,9 @@ module Crylox
     def error(token : Token, message : String)
       @@hadError = true
       if token.type == TokenType::EOF
-        report(token.line, " at end", message)
+        report(token.line, "at end", message)
       else
-        report(token.line, " at '#{token.lexeme}'", message)
+        report(token.line, "at '#{token.lexeme}'", message)
       end
     end
 
@@ -87,6 +96,6 @@ module Crylox
   end
 end
 
-{% if flag?(:crylox_main) %}
+# {% if flag?(:crylox_main) %}
   Crylox::Crylox.new.main(ARGV)
-{% end %}
+# {% end %}

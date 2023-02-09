@@ -1,26 +1,7 @@
 #!/usr/bin/env -S crystal run -Dgenerate_ast_main
 
 module Crylox::Tools
-  def self.main(args)
-    baseName = "Expr"
-    types = {
-      "Binary" => [
-        ["left", "#{baseName}"],
-        ["operator", "Token"],
-        ["right", "#{baseName}"]
-      ],
-      "Grouping" => [
-        ["expression", "#{baseName}"]
-      ],
-      "Literal" => [
-        ["value", "LiteralType"]
-      ],
-      "Unary" => [
-        ["operator", "Token"],
-        ["right", "#{baseName}"]
-      ]
-    }
-
+  def self.defineAst(baseName, types)
     File.open("src/#{baseName}.cr", "w") do |file|
       file.puts "require \"./Token\""
       file.puts
@@ -53,6 +34,49 @@ module Crylox::Tools
 
       file.puts "end"
     end
+  end
+
+  def self.main(args)
+    defineAst("Expr", {
+      "Assign" => [
+        ["name", "Token"],
+        ["value", "Expr"]
+      ],
+      "Binary" => [
+        ["left", "Expr"],
+        ["operator", "Token"],
+        ["right", "Expr"]
+      ],
+      "Grouping" => [
+        ["expression", "Expr"]
+      ],
+      "Unary" => [
+        ["operator", "Token"],
+        ["right", "Expr"]
+      ],
+      "Literal" => [
+        ["value", "LiteralType"],
+      ],
+      "Variable" => [
+        ["name", "Token"]
+      ]
+    })
+
+    defineAst("Stmt", {
+      "Block" => [
+        ["statements", "Array(Stmt)"]
+      ],
+      "Expression" => [
+        ["expression", "Expr::Expr"]
+      ],
+      "Print" => [
+        ["expression", "Expr::Expr"]
+      ],
+      "Var" => [
+        ["name", "Token"],
+        ["initializer", "Expr::Expr | Nil"]
+      ]
+    })
   end
 end
 

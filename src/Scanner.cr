@@ -70,6 +70,12 @@ module Crylox::Scanner
         addToken(match('=') ? TokenType::BANG_EQUAL : TokenType::BANG)
       when '='
         addToken(match('=') ? TokenType::EQUAL_EQUAL : TokenType::EQUAL)
+        # if peek() == '='
+        #   advance()
+        #   addToken(TokenType::EQUAL_EQUAL)
+        # else
+        #   addToken(TokenType::EQUAL)
+        # end
       when '<'
         addToken(match('=') ? TokenType::LESS_EQUAL : TokenType::LESS)
       when '>'
@@ -133,7 +139,7 @@ module Crylox::Scanner
 
     private def match(expected : Char)
       return false if at_end?
-      return false if @source[@current-1] != expected
+      return false if @source[@current] != expected
       @current += 1
       return true
     end

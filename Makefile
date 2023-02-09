@@ -2,15 +2,26 @@ CRYSTAL=crystal
 CRFLAGS=
 
 run:
-	$(CRYSTAL) $(CRFLAGS) src/Crylox.cr
+	$(CRYSTAL) run $(CRFLAGS) -D crylox_main src/Crylox.cr
+
+run_all: run_print run_var run_scope
+
+run_print:
+	$(CRYSTAL) run $(CRFLAGS) -D crylox_main src/Crylox.cr -- tests/print.lox
+
+run_var:
+	$(CRYSTAL) run $(CRFLAGS) -D crylox_main src/Crylox.cr -- tests/var.lox
+
+run_scope:
+	$(CRYSTAL) run $(CRFLAGS) -D crylox_main src/Crylox.cr -- tests/scope.lox
 
 build:
 	$(CRYSTAL) build $(CRFLAGS) src/Crylox.cr
 
 gen_ast:
-	$(CRYSTAL) $(CRFLAGS) src/GenerateAst.cr
+	./src/GenerateAst.cr
 
 test_ast:
-	$(CRYSTAL) $(CRFLAGS) src/AstPrinter.cr
+	./src/AstPrinter.cr
 
-.PHONY: run build gen_ast test_ast
+.PHONY: run run_print run_var build gen_ast test_ast

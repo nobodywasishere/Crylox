@@ -7,6 +7,20 @@ module Crylox::Expr
     end
   end
 
+  class Assign < Expr
+    getter name : Token
+    getter value : Expr
+
+    def initialize(name : Token, value : Expr)
+      @name = name
+      @value = value
+    end
+
+    def accept(visitor : Ast::Visitor)
+      return visitor.visitAssignExpr(self)
+    end
+  end
+
   class Binary < Expr
     getter left : Expr
     getter operator : Token
@@ -35,6 +49,20 @@ module Crylox::Expr
     end
   end
 
+  class Unary < Expr
+    getter operator : Token
+    getter right : Expr
+
+    def initialize(operator : Token, right : Expr)
+      @operator = operator
+      @right = right
+    end
+
+    def accept(visitor : Ast::Visitor)
+      return visitor.visitUnaryExpr(self)
+    end
+  end
+
   class Literal < Expr
     getter value : LiteralType
 
@@ -47,17 +75,15 @@ module Crylox::Expr
     end
   end
 
-  class Unary < Expr
-    getter operator : Token
-    getter right : Expr
+  class Variable < Expr
+    getter name : Token
 
-    def initialize(operator : Token, right : Expr)
-      @operator = operator
-      @right = right
+    def initialize(name : Token)
+      @name = name
     end
 
     def accept(visitor : Ast::Visitor)
-      return visitor.visitUnaryExpr(self)
+      return visitor.visitVariableExpr(self)
     end
   end
 
