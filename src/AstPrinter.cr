@@ -3,7 +3,6 @@
 require "./Expr.cr"
 
 module Crylox::Ast
-
   class Visitor
   end
 
@@ -102,7 +101,7 @@ module Crylox::Ast
       )
     )
 
-    puts AstPrinter.new().print(expression)
+    puts AstPrinter.new.print(expression)
   end
 end
 

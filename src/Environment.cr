@@ -18,7 +18,7 @@ module Crylox::Env
     end
 
     def get(name : Token)
-      if @values.keys().includes? name.lexeme
+      if @values.keys.includes? name.lexeme
         return @values[name.lexeme]
       end
 

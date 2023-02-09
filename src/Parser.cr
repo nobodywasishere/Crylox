@@ -6,7 +6,7 @@ require "./TokenTypes"
 module Crylox::Parser
   class ParseError < Exception
     def initialize(message : String | Nil = nil, cause : Exception | Nil = nil, token : Token | Nil = nil)
-      Crylox.new().error(token, message)
+      Crylox.new.error(token, message)
       super(message, cause)
     end
   end
@@ -19,7 +19,7 @@ module Crylox::Parser
       @tokens = tokens
     end
 
-    def parse() : Array(Stmt::Stmt | Nil) | Nil
+    def parse : Array(Stmt::Stmt | Nil) | Nil
       statements = [] of Stmt::Stmt | Nil
       while !at_end?
         statements << declaration()
@@ -27,11 +27,11 @@ module Crylox::Parser
       return statements
     end
 
-    private def expression() : Expr::Expr
+    private def expression : Expr::Expr
       return assignment()
     end
 
-    private def declaration() : Stmt::Stmt | Nil
+    private def declaration : Stmt::Stmt | Nil
       begin
         return varDeclaration() if match(TokenType::VAR)
         return statement()
@@ -41,19 +41,19 @@ module Crylox::Parser
       end
     end
 
-    private def statement() : Stmt::Stmt
+    private def statement : Stmt::Stmt
       return printStatement() if match(TokenType::PRINT)
       return Stmt::Block.new(block()) if match(TokenType::LEFT_BRACE)
       return expressionStatement()
     end
 
-    private def printStatement() : Stmt::Stmt
+    private def printStatement : Stmt::Stmt
       value : Expr::Expr = expression()
       consume(TokenType::SEMICOLON, "Expected ';' after value.")
       return Stmt::Print.new(value)
     end
 
-    private def varDeclaration() : Stmt::Stmt
+    private def varDeclaration : Stmt::Stmt
       name : Token = consume(TokenType::IDENTIFIER, "Expected variable name.")
 
       initializer : Expr::Expr | Nil = nil
@@ -65,13 +65,13 @@ module Crylox::Parser
       return Stmt::Var.new(name, initializer)
     end
 
-    private def expressionStatement() : Stmt::Stmt
+    private def expressionStatement : Stmt::Stmt
       expr : Expr::Expr = expression()
       consume(TokenType::SEMICOLON, "Expect ';' after expression.")
       return Stmt::Expression.new(expr)
     end
 
-    private def block() : Array(Stmt::Stmt)
+    private def block : Array(Stmt::Stmt)
       statements = [] of Stmt::Stmt
       while (!check(TokenType::RIGHT_BRACE) && !at_end?)
         dec = declaration()
@@ -79,10 +79,10 @@ module Crylox::Parser
       end
 
       consume(TokenType::RIGHT_BRACE, "Expected '}' after block.")
-      return statements;
+      return statements
     end
 
-    private def assignment() : Expr::Expr
+    private def assignment : Expr::Expr
       expr : Expr::Expr = equality()
 
       if match(TokenType::EQUAL)
@@ -100,7 +100,7 @@ module Crylox::Parser
       return expr
     end
 
-    private def equality() : Expr::Expr
+    private def equality : Expr::Expr
       expr : Expr::Expr = comparison()
       while match(TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL)
         operator : Token = previous()
@@ -110,10 +110,10 @@ module Crylox::Parser
       return expr
     end
 
-    private def comparison() : Expr::Expr
+    private def comparison : Expr::Expr
       expr : Expr::Expr = term()
       while match(TokenType::GREATER, TokenType::GREATER_EQUAL,
-        TokenType::LESS, TokenType::LESS_EQUAL)
+              TokenType::LESS, TokenType::LESS_EQUAL)
         operator : Token = previous()
         right : Expr::Expr = term()
         expr = Expr::Binary.new(expr, operator, right)
@@ -121,7 +121,7 @@ module Crylox::Parser
       return expr
     end
 
-    private def term() : Expr::Expr
+    private def term : Expr::Expr
       expr : Expr::Expr = factor()
       while match(TokenType::MINUS, TokenType::PLUS)
         operator : Token = previous()
@@ -131,7 +131,7 @@ module Crylox::Parser
       return expr
     end
 
-    private def factor() : Expr::Expr
+    private def factor : Expr::Expr
       expr : Expr::Expr = unary()
       while match(TokenType::SLASH, TokenType::STAR)
         operator : Token = previous()
@@ -141,7 +141,7 @@ module Crylox::Parser
       return expr
     end
 
-    private def unary() : Expr::Expr
+    private def unary : Expr::Expr
       if match(TokenType::BANG, TokenType::MINUS)
         operator : Token = previous()
         right : Expr::Expr = unary()
@@ -150,11 +150,11 @@ module Crylox::Parser
       return primary()
     end
 
-    private def primary() : Expr::Expr
+    private def primary : Expr::Expr
       return Expr::Literal.new(false) if match(TokenType::FALSE)
       return Expr::Literal.new(true) if match(TokenType::TRUE)
       return Expr::Literal.new(nil) if match(TokenType::NIL)
-      return Expr::Literal.new(previous().literal()) if match(TokenType::NUMBER, TokenType::STRING)
+      return Expr::Literal.new(previous().literal) if match(TokenType::NUMBER, TokenType::STRING)
       return Expr::Variable.new(previous()) if match(TokenType::IDENTIFIER)
 
       if match(TokenType::LEFT_PAREN)
@@ -189,7 +189,7 @@ module Crylox::Parser
       return peek().type == type
     end
 
-    private def advance() : Token
+    private def advance : Token
       @current += 1 if !at_end?
       return previous()
     end
@@ -198,20 +198,20 @@ module Crylox::Parser
       return peek().type == TokenType::EOF
     end
 
-    private def peek() : Token
+    private def peek : Token
       return @tokens[@current]
     end
 
-    private def previous() : Token
-      return @tokens[@current-1]
+    private def previous : Token
+      return @tokens[@current - 1]
     end
 
     private def parse_error(token : Token, message : String)
-      Crylox.new().error(token, message)
+      Crylox.new.error(token, message)
       return ParseError.new(message, nil, token)
     end
 
-    private def synchronize() : Nil
+    private def synchronize : Nil
       advance()
       while !at_end?
         return if previous().type == TokenType::SEMICOLON
@@ -224,6 +224,5 @@ module Crylox::Parser
         advance()
       end
     end
-
   end
 end

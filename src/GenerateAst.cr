@@ -40,42 +40,42 @@ module Crylox::Tools
     defineAst("Expr", {
       "Assign" => [
         ["name", "Token"],
-        ["value", "Expr"]
+        ["value", "Expr"],
       ],
       "Binary" => [
         ["left", "Expr"],
         ["operator", "Token"],
-        ["right", "Expr"]
+        ["right", "Expr"],
       ],
       "Grouping" => [
-        ["expression", "Expr"]
+        ["expression", "Expr"],
       ],
       "Unary" => [
         ["operator", "Token"],
-        ["right", "Expr"]
+        ["right", "Expr"],
       ],
       "Literal" => [
         ["value", "LiteralType"],
       ],
       "Variable" => [
-        ["name", "Token"]
-      ]
+        ["name", "Token"],
+      ],
     })
 
     defineAst("Stmt", {
       "Block" => [
-        ["statements", "Array(Stmt)"]
+        ["statements", "Array(Stmt)"],
       ],
       "Expression" => [
-        ["expression", "Expr::Expr"]
+        ["expression", "Expr::Expr"],
       ],
       "Print" => [
-        ["expression", "Expr::Expr"]
+        ["expression", "Expr::Expr"],
       ],
       "Var" => [
         ["name", "Token"],
-        ["initializer", "Expr::Expr | Nil"]
-      ]
+        ["initializer", "Expr::Expr | Nil"],
+      ],
     })
   end
 end

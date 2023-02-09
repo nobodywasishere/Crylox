@@ -3,7 +3,6 @@ require "./TokenTypes"
 
 module Crylox::Scanner
   class Scanner
-
     @start = 0
     @current = 0
     @line = 1
@@ -12,22 +11,22 @@ module Crylox::Scanner
       @source = source
       @tokens = [] of Token
       @keywords = {
-        "and" => TokenType::AND,
-        "class" => TokenType::CLASS,
-        "else" => TokenType::ELSE,
-        "false" => TokenType::FALSE,
-        "for" => TokenType::FOR,
-        "fun" => TokenType::FUN,
-        "if" => TokenType::IF,
-        "nil" => TokenType::NIL,
-        "or" => TokenType::OR,
-        "print" => TokenType::PRINT,
+        "and"    => TokenType::AND,
+        "class"  => TokenType::CLASS,
+        "else"   => TokenType::ELSE,
+        "false"  => TokenType::FALSE,
+        "for"    => TokenType::FOR,
+        "fun"    => TokenType::FUN,
+        "if"     => TokenType::IF,
+        "nil"    => TokenType::NIL,
+        "or"     => TokenType::OR,
+        "print"  => TokenType::PRINT,
         "return" => TokenType::RETURN,
-        "super" => TokenType::SUPER,
-        "this" => TokenType::THIS,
-        "true" => TokenType::TRUE,
-        "var" => TokenType::VAR,
-        "while" => TokenType::WHILE
+        "super"  => TokenType::SUPER,
+        "this"   => TokenType::THIS,
+        "true"   => TokenType::TRUE,
+        "var"    => TokenType::VAR,
+        "while"  => TokenType::WHILE,
       }
     end
 
@@ -41,7 +40,7 @@ module Crylox::Scanner
       return @tokens
     end
 
-    private def scanToken()
+    private def scanToken
       c = advance()
 
       case c
@@ -65,7 +64,6 @@ module Crylox::Scanner
         addToken(TokenType::SEMICOLON)
       when '*'
         addToken(TokenType::STAR)
-
       when '!'
         addToken(match('=') ? TokenType::BANG_EQUAL : TokenType::BANG)
       when '='
@@ -80,7 +78,6 @@ module Crylox::Scanner
         addToken(match('=') ? TokenType::LESS_EQUAL : TokenType::LESS)
       when '>'
         addToken(match('=') ? TokenType::GREATER_EQUAL : TokenType::GREATER)
-
       when ' ', '\r', '\t'
         nil
       when '/'
@@ -93,17 +90,15 @@ module Crylox::Scanner
         end
       when '\n'
         @line += 1
-
       when '"'
         string()
-
       else
         if numeric?(c)
           number()
         elsif alpha?(c)
           identifier()
         else
-          Crylox.new().error(@line, "Unexpected character '#{c}'")
+          Crylox.new.error(@line, "Unexpected character '#{c}'")
         end
       end
     end
@@ -113,7 +108,7 @@ module Crylox::Scanner
         advance()
       end
 
-      text = @source[@start..@current-1]
+      text = @source[@start..@current - 1]
       if @keywords.keys.includes? text
         type = @keywords[text]
       else
@@ -134,7 +129,7 @@ module Crylox::Scanner
         end
       end
 
-      addToken(TokenType::NUMBER, @source[@start..@current-1].to_f)
+      addToken(TokenType::NUMBER, @source[@start..@current - 1].to_f)
     end
 
     private def match(expected : Char)
@@ -149,9 +144,9 @@ module Crylox::Scanner
       return @source[@current]
     end
 
-    private def peekNext()
-      return '\0' if @current+1 >= @source.size
-      return @source[@current+1]
+    private def peekNext
+      return '\0' if @current + 1 >= @source.size
+      return @source[@current + 1]
     end
 
     private def numeric?(c : Char)
@@ -177,7 +172,7 @@ module Crylox::Scanner
     end
 
     private def addToken(type : TokenType, literal)
-      text = @source[@start..@current-1]
+      text = @source[@start..@current - 1]
       @tokens << Token.new(type, text, literal, @line)
     end
 
@@ -188,12 +183,12 @@ module Crylox::Scanner
       end
 
       if at_end?
-        Crylox.new().error(@line, "Unterminated string.")
+        Crylox.new.error(@line, "Unterminated string.")
         return
       end
 
       advance()
-      value = @source[@start+1..@current-2]
+      value = @source[@start + 1..@current - 2]
       addToken(TokenType::STRING, value)
     end
   end

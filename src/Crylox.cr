@@ -9,7 +9,7 @@ module Crylox
   class Crylox
     @@hadError : Bool = false
     @@hadExecError : Bool = false
-    @@interpreter : Interpreter::Interpreter = Interpreter::Interpreter.new()
+    @@interpreter : Interpreter::Interpreter = Interpreter::Interpreter.new
 
     def main(args : Array(String))
       if args.size > 1
@@ -44,7 +44,7 @@ module Crylox
 
     private def run(source : String)
       scanner = Scanner::Scanner.new(source)
-      tokens = scanner.scanTokens()
+      tokens = scanner.scanTokens
       debug = true
 
       # if debug
@@ -59,12 +59,12 @@ module Crylox
       end
 
       parser = Parser::Parser.new(tokens)
-      statements : Array(Stmt::Stmt | Nil) | Nil = parser.parse()
+      statements : Array(Stmt::Stmt | Nil) | Nil = parser.parse
       return if @@hadError || statements.nil? || statements.includes? nil
 
       if debug
         puts "!! Ast:"
-        puts Ast::AstPrinter.new().print(statements)
+        puts Ast::AstPrinter.new.print(statements)
 
         puts "!! Interpreted:"
       end
@@ -97,5 +97,5 @@ module Crylox
 end
 
 # {% if flag?(:crylox_main) %}
-  Crylox::Crylox.new.main(ARGV)
+Crylox::Crylox.new.main(ARGV)
 # {% end %}

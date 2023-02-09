@@ -16,7 +16,7 @@ module Crylox::Interpreter
   end
 
   class Interpreter < Ast::Visitor
-    @env : Env::Env = Env::Env.new()
+    @env : Env::Env = Env::Env.new
 
     def interpret(statements : Array(Stmt::Stmt | Nil))
       begin
@@ -24,7 +24,7 @@ module Crylox::Interpreter
           execute(statement) if !statement.nil?
         end
       rescue e : ExecError
-        Crylox.new().exec_error(e)
+        Crylox.new.exec_error(e)
       end
     end
 
@@ -57,7 +57,7 @@ module Crylox::Interpreter
         else
           raise ExecError.new("Operands must be two numbers", nil, expr.operator)
         end
-        when TokenType::BANG_EQUAL
+      when TokenType::BANG_EQUAL
         return !is_equal?(left, right)
       when TokenType::EQUAL_EQUAL
         return is_equal?(left, right)

@@ -56,5 +56,4 @@ module Crylox::Stmt
       return visitor.visitVarStmt(self)
     end
   end
-
 end

@@ -86,5 +86,4 @@ module Crylox::Expr
       return visitor.visitVariableExpr(self)
     end
   end
-
 end
