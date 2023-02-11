@@ -60,6 +60,11 @@ module Crylox::Tools
       "Variable" => [
         ["name", "Token"],
       ],
+      "Logical" => [
+        ["left", "Expr"],
+        ["operator", "Token"],
+        ["right", "Expr"],
+      ],
     })
 
     defineAst("Stmt", {
@@ -68,6 +73,11 @@ module Crylox::Tools
       ],
       "Expression" => [
         ["expression", "Expr::Expr"],
+      ],
+      "If" => [
+        ["condition", "Expr::Expr"],
+        ["thenBranch", "Stmt"],
+        ["elseBranch", "Stmt | Nil"],
       ],
       "Print" => [
         ["expression", "Expr::Expr"],

@@ -1,10 +1,7 @@
-#!/usr/bin/env -S crystal run -Dast_printer_main
-
 require "./Expr.cr"
 
 module Crylox::Ast
-  class Visitor
-  end
+  class Visitor; end
 
   class AstPrinter < Visitor
     @indent : Int32 = 1
@@ -42,8 +39,24 @@ module Crylox::Ast
       return parenthesize(expr.operator.lexeme, expr.right)
     end
 
-    def visitVariableExpr(expr : Expr::Variable) : LiteralType
+    def visitVariableExpr(expr : Expr::Variable) : String
       return "`#{expr.name.lexeme}`"
+    end
+
+    def visitLogicalExpr(expr : Expr::Logical) : String
+      return parenthesize(expr.operator.lexeme, expr.left, expr.right)
+    end
+
+    def visitIfStmt(stmt : Stmt::If) : String
+      builder = "(if #{stmt.condition.accept(self)}\n"
+      @indent += 1
+      builder += "#{" "*@indent}#{stmt.thenBranch.accept(self)}\n"
+      elseBranch = stmt.elseBranch
+      unless elseBranch.nil?
+        builder += "#{" "*@indent}#{elseBranch.accept(self)}\n"
+      end
+      @indent -= 1
+      builder += "#{" "*@indent})"
     end
 
     def visitBlockStmt(stmt : Stmt::Block) : String
@@ -88,23 +101,4 @@ module Crylox::Ast
       return builder
     end
   end
-
-  def self.ast_test(args)
-    expression : Expr::Expr = Expr::Binary.new(
-      Expr::Unary.new(
-        Token.new(TokenType::MINUS, "-", nil, 1),
-        Expr::Literal.new("123")
-      ),
-      Token.new(TokenType::STAR, "*", nil, 1),
-      Expr::Grouping.new(
-        Expr::Literal.new(45.67)
-      )
-    )
-
-    puts AstPrinter.new.print(expression)
-  end
 end
-
-{% if flag?(:ast_printer_main) %}
-  Crylox::Ast.ast_test(ARGV)
-{% end %}

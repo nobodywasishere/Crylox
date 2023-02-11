@@ -31,6 +31,22 @@ module Crylox::Stmt
     end
   end
 
+  class If < Stmt
+    getter condition : Expr::Expr
+    getter thenBranch : Stmt
+    getter elseBranch : Stmt | Nil
+
+    def initialize(condition : Expr::Expr, thenBranch : Stmt, elseBranch : Stmt | Nil)
+      @condition = condition
+      @thenBranch = thenBranch
+      @elseBranch = elseBranch
+    end
+
+    def accept(visitor : Ast::Visitor)
+      return visitor.visitIfStmt(self)
+    end
+  end
+
   class Print < Stmt
     getter expression : Expr::Expr
 
@@ -56,4 +72,5 @@ module Crylox::Stmt
       return visitor.visitVarStmt(self)
     end
   end
+
 end

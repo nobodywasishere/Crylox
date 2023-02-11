@@ -42,9 +42,21 @@ module Crylox::Parser
     end
 
     private def statement : Stmt::Stmt
+      return ifStatement() if match(TokenType::IF)
       return printStatement() if match(TokenType::PRINT)
       return Stmt::Block.new(block()) if match(TokenType::LEFT_BRACE)
       return expressionStatement()
+    end
+
+    private def ifStatement : Stmt::Stmt
+      consume(TokenType::LEFT_PAREN, "Expected '(' after 'if'.")
+      condition = expression()
+      consume(TokenType::RIGHT_PAREN, "Expected '(' after if condition.")
+
+      thenBranch : Stmt::Stmt = statement()
+      elseBranch = match(TokenType::ELSE) ? statement() : nil
+
+      return Stmt::If.new(condition, thenBranch, elseBranch)
     end
 
     private def printStatement : Stmt::Stmt
@@ -83,7 +95,7 @@ module Crylox::Parser
     end
 
     private def assignment : Expr::Expr
-      expr : Expr::Expr = equality()
+      expr : Expr::Expr = or()
 
       if match(TokenType::EQUAL)
         equals : Token = previous()
@@ -95,6 +107,30 @@ module Crylox::Parser
         end
 
         parse_error(equals, "Invalid assignment target.")
+      end
+
+      return expr
+    end
+
+    private def or : Expr::Expr
+      expr : Expr::Expr = and()
+
+      while match(TokenType::OR)
+        operator : Token = previous()
+        right : Expr::Expr = and()
+        expr = Expr::Logical.new(expr, operator, right)
+      end
+
+      return expr
+    end
+
+    private def and : Expr::Expr
+      expr : Expr::Expr = equality()
+
+      while match(TokenType::AND)
+        operator : Token = previous()
+        right : Expr::Expr = equality()
+        expr = Expr::Logical.new(expr, operator, right)
       end
 
       return expr

@@ -1,4 +1,4 @@
-require "./AstPrinter"
+require "./Ast"
 require "./Environment"
 require "./Expr"
 require "./Stmt"
@@ -100,6 +100,18 @@ module Crylox::Interpreter
       return expr.value
     end
 
+    def visitLogicalExpr(expr : Expr::Logical) : LiteralType
+      left : LiteralType = evaluate(expr.left)
+
+      if expr.operator.type == TokenType::OR
+        return left if is_truthy?(left)
+      else
+        return left if !is_truthy?(left)
+      end
+
+      return evaluate(expr.right)
+    end
+
     def visitUnaryExpr(expr : Expr::Unary) : LiteralType
       right : LiteralType = evaluate(expr.right)
 
@@ -179,6 +191,16 @@ module Crylox::Interpreter
 
     def visitExpressionStmt(stmt : Stmt::Expression)
       evaluate(stmt.expression)
+      return nil
+    end
+
+    def visitIfStmt(stmt : Stmt::If)
+      elseBranch = stmt.elseBranch
+      if is_truthy?(evaluate(stmt.condition))
+        execute(stmt.thenBranch)
+      elsif !elseBranch.nil?
+        execute(elseBranch)
+      end
       return nil
     end
 

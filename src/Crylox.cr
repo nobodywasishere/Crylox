@@ -1,9 +1,9 @@
-#!/usr/bin/env -S crystal run -Dcrylox_main
+#!/usr/bin/env -S crystal
 
 require "./Scanner"
 require "./Parser"
 require "./Interpreter"
-require "./AstPrinter"
+require "./Ast"
 
 module Crylox
   class Crylox
@@ -96,6 +96,4 @@ module Crylox
   end
 end
 
-# {% if flag?(:crylox_main) %}
 Crylox::Crylox.new.main(ARGV)
-# {% end %}

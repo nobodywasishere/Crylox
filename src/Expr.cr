@@ -86,4 +86,21 @@ module Crylox::Expr
       return visitor.visitVariableExpr(self)
     end
   end
+
+  class Logical < Expr
+    getter left : Expr
+    getter operator : Token
+    getter right : Expr
+
+    def initialize(left : Expr, operator : Token, right : Expr)
+      @left = left
+      @operator = operator
+      @right = right
+    end
+
+    def accept(visitor : Ast::Visitor)
+      return visitor.visitLogicalExpr(self)
+    end
+  end
+
 end

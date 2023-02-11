@@ -1,2 +1,2 @@
 require "spec"
-require "../src/crylox"
+require "../src/Crylox"

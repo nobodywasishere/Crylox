@@ -1,0 +1,13 @@
+var a = "a";
+if (a == "a")
+    print "hello";
+else
+    print "goodbye";
+
+var b = "a";
+if (a == b) {
+    print "hello";
+    print a;
+} else {
+    print b;
+}
