@@ -184,7 +184,7 @@ class Crylox::Parser
       return if previous.type == :semicolon
 
       case peek.type
-      when :class, :for, :fun, :if, :print, :return, :var, :while
+      when .class?, .for?, .fun?, .if?, .print?, .return?, .var?, .while?
         return
       end
 

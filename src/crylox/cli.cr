@@ -24,15 +24,16 @@ class Crylox::CLI
       print "> "
       line = gets
 
-      if line.nil?
-        break
-      end
+      break if line.nil?
+      next if line.empty?
 
       run line
     end
   end
 
   private def run(source : String)
+    @interpreter ||= Interpreter.new
+
     scanner = Scanner.new(source)
     tokens = scanner.scan_tokens
 
@@ -41,11 +42,9 @@ class Crylox::CLI
     parser = Parser.new(tokens)
     expression = parser.parse
 
-    if expression.nil?
-      return
-    end
+    return if expression.nil?
 
-    puts Crylox::Expr::Printer.print(expression)
+    @interpreter.try &.interpret(expression)
   end
 end
 
