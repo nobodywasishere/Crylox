@@ -6,8 +6,8 @@ authors:
 
 targets:
   crylox:
-    main: src/Crylox.cr
+    main: src/crylox.cr
 
-crystal: 1.6.2
+crystal: 1.9.2
 
 license: MIT
