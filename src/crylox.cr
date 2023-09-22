@@ -1,6 +1,14 @@
-# TODO: Write documentation for `Crylox`
+require "log"
+
 module Crylox
   VERSION = "0.1.0"
 
-  # TODO: Put your code here
+  alias LiteralType = String | Float64 | Bool | Nil
 end
+
+require "./crylox/token_type"
+require "./crylox/token"
+require "./crylox/ast"
+require "./crylox/printer"
+require "./crylox/scanner"
+require "./crylox/parser"
