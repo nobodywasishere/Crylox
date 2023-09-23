@@ -10,11 +10,11 @@ class Crylox::Environment
   end
 
   def get(name : Token)
-    if @values.keys.includes? name.lexeme
+    if defined? name
       return @values[name.lexeme]
     end
 
-    if enclosing.try &.keys.includes? name.lexeme
+    unless enclosing.nil?
       return enclosing.try &.get(name)
     end
 
@@ -22,18 +22,18 @@ class Crylox::Environment
   end
 
   def assign(name : Token, value : LiteralType)
-    if @values.keys.includes? name.lexeme
+    if defined? name
       return @values[name.lexeme] = value
     end
 
-    if enclosing.try &.keys.includes? name.lexeme
+    unless enclosing.nil?
       return enclosing.try &.assign(name, value)
     end
 
     raise Crylox::Interpreter::RuntimeError.new("Undefined variable #{name.lexeme}", name)
   end
 
-  def keys
-    @values.keys
+  def defined?(name : Token)
+    @values.keys.any? { |k| k == name.lexeme }
   end
 end

@@ -36,11 +36,11 @@ describe Crylox::Parser do
       }
       LOX
     }.should eq(<<-AST)
-    (
+    (block
       (var i 1.0)
       (while ((< (= i) 5.0))
-        (
-          (
+        (block
+          (block
             (print (= i))
             (// hello world)
           )

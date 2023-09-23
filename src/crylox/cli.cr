@@ -20,22 +20,26 @@ class Crylox::CLI
   end
 
   private def run_prompt(ast = false)
-    while true
-      print "> "
+    loop do
+      print ">> "
       line = gets
 
       break if line.nil?
       next if line.empty?
 
-      if ast
-        run_ast line
-      else
-        run line
+      begin
+        if ast
+          run_ast line
+        else
+          res = run(line)
+          puts "=: #{res.is_a?(String) ? res.inspect : res}"
+        end
+      rescue ex : Parser::ParseError | Interpreter::RuntimeError
       end
     end
   end
 
-  private def run(source : String)
+  private def run(source : String) : LiteralType
     @interpreter ||= Interpreter.new
 
     scanner = Scanner.new(source)

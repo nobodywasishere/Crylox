@@ -44,6 +44,11 @@ module Crylox
       "operator : Token",
       "right : Expr",
     ],
+    "Call" => [
+      "callee : Expr",
+      "paren : Token",
+      "arguments : Array(Expr)",
+    ],
     "Grouping" => [
       "expression : Expr",
     ],
@@ -74,6 +79,11 @@ module Crylox
     "Expression" => [
       "expression : Expr",
     ],
+    "Function" => [
+      "name : Token",
+      "params : Array(Token)",
+      "body : Array(Stmt)",
+    ],
     "If" => [
       "condition : Expr",
       "then_branch : Stmt",
@@ -85,6 +95,10 @@ module Crylox
     ],
     "Print" => [
       "expression : Expr",
+    ],
+    "Return" => [
+      "keyword : Token",
+      "value : Expr",
     ],
     "Var" => [
       "name : Token",

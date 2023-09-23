@@ -1,9 +1,12 @@
 class Crylox::Parser
   class ParseError < Exception
     def initialize(message : String, token : Token)
-      super("  #{" " * (token.col - 1)}^\n[line #{token.line}, col #{token.col}] ParseError: #{message}")
+      super("   #{" " * (token.col - 1)}^\n[line #{token.line}, col #{token.col}] ParseError: #{message}")
     end
   end
+
+  property stdout : IO = STDOUT
+  property stderr : IO = STDERR
 
   def initialize(@tokens : Array(Token))
     @current = 0
@@ -24,6 +27,7 @@ class Crylox::Parser
     return for_stmt if match(TokenType::FOR)
     return if_stmt if match(TokenType::IF)
     return print_stmt if match(TokenType::PRINT)
+    return return_stmt if match(TokenType::RETURN)
     return while_stmt if match(TokenType::WHILE)
     return break_stmt if match(TokenType::BREAK)
     return Stmt::Block.new(block_stmt) if match(TokenType::LEFT_BRACE)
@@ -37,14 +41,11 @@ class Crylox::Parser
   # Statement parsers
 
   private def declaration_stmt : Stmt?
+    return function_stmt("function") if match(TokenType::FUN)
     return var_declaration if match(TokenType::VAR)
     statement
   rescue ex : ParseError
-    puts ex
-
     synchronize
-
-    nil
   end
 
   private def for_stmt : Stmt::Block | Stmt::While
@@ -106,6 +107,18 @@ class Crylox::Parser
     Stmt::Print.new(value)
   end
 
+  private def return_stmt : Stmt::Return
+    keyword = previous
+
+    value = Expr::Literal.new(nil)
+    unless check(TokenType::SEMICOLON)
+      value = expression
+    end
+
+    consume(TokenType::SEMICOLON, "Expect ';' after return value.")
+    Stmt::Return.new(keyword, value)
+  end
+
   private def while_stmt : Stmt::While
     consume(TokenType::LEFT_PAREN, "Expect '(' after 'while'.")
     condition = expression
@@ -137,7 +150,8 @@ class Crylox::Parser
     end
 
     consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.")
-    return Stmt::Var.new(name, initializer)
+
+    Stmt::Var.new(name, initializer)
   end
 
   private def expression_stmt : Stmt::Expression
@@ -148,7 +162,27 @@ class Crylox::Parser
     Stmt::Expression.new(expr)
   end
 
-  private def block_stmt
+  private def function_stmt(kind : String) : Stmt::Function
+    name = consume(TokenType::IDENTIFIER, "Expect #{kind} name.")
+
+    consume(TokenType::LEFT_PAREN, "Expect '(' after #{kind} name")
+    parameters = [] of Token
+
+    unless check(TokenType::RIGHT_PAREN)
+      parameters << consume(TokenType::IDENTIFIER, "Expect parameter name.")
+      while match(TokenType::COMMA)
+        error("Cannot have more than 255 parameters.", peek) if parameters.size >= 255
+        parameters << consume(TokenType::IDENTIFIER, "Expect parameter name.")
+      end
+    end
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters.")
+    consume(TokenType::LEFT_BRACE, "Expect '{' before #{kind} body.")
+    body = block_stmt
+
+    Stmt::Function.new(name, parameters, body)
+  end
+
+  private def block_stmt : Array(Stmt)
     statements = [] of Stmt
 
     until check(TokenType::RIGHT_BRACE) || at_end?
@@ -175,7 +209,7 @@ class Crylox::Parser
         return Expr::Assign.new(expr.name, value)
       end
 
-      error("Invalid assignment target.", equals)
+      raise error("Invalid assignment target.", equals)
     end
 
     expr
@@ -248,7 +282,38 @@ class Crylox::Parser
       return Expr::Unary.new(operator, right)
     end
 
-    primary
+    call
+  end
+
+  private def call
+    expr = primary
+
+    loop do
+      if match(TokenType::LEFT_PAREN)
+        expr = finish_call(expr)
+      else
+        break
+      end
+    end
+
+    expr
+  end
+
+  private def finish_call(callee : Expr) : Expr
+    arguments = [] of Expr
+
+    unless check(TokenType::RIGHT_PAREN)
+      arguments << expression
+
+      while match(TokenType::COMMA)
+        error("Cannot have more than 255 arguments.", peek) if arguments.size >= 255
+        arguments << expression
+      end
+    end
+
+    paren = consume(TokenType::RIGHT_PAREN, "Expect ')' after arguments.")
+
+    Expr::Call.new(callee, paren, arguments)
   end
 
   private def primary : Expr
@@ -266,7 +331,7 @@ class Crylox::Parser
       return Expr::Grouping.new(expr)
     end
 
-    error("Expected expression.", peek)
+    raise error("Expected expression.", peek)
   end
 
   # Helper methods
@@ -287,7 +352,7 @@ class Crylox::Parser
       return advance
     end
 
-    error(message, peek)
+    raise error(message, peek)
   end
 
   private def check(type : TokenType) : Bool
@@ -313,7 +378,9 @@ class Crylox::Parser
   end
 
   private def error(message : String, token : Token) : ParseError
-    raise ParseError.new message, token
+    ex = ParseError.new message, token
+    stderr.puts ex
+    ex
   end
 
   private def synchronize : Nil

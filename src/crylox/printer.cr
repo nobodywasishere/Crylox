@@ -3,14 +3,14 @@ class Crylox::Printer
   include Crylox::Stmt::Visitor
 
   def self.print(stmts : Array(Stmt))
-    stmts.map { |stmt| stmt.accept(new) }.join("\n")
+    stmts.map(&.accept(new)).join("\n")
   end
 
   # Statements
 
   def visit_block(stmt : Stmt::Block)
     String.build do |str|
-      str << "(\n"
+      str << "(block\n"
       stmt.statements.each do |s|
         str << "  "
         str << s.accept(self).try &.gsub(/\n/, "\n  ")
@@ -56,11 +56,27 @@ class Crylox::Printer
     parenthesize("print", stmt.expression)
   end
 
+  def visit_return(stmt : Stmt::Return)
+    parenthesize("return #{stmt.keyword.lexeme}", stmt.value)
+  end
+
   def visit_var(stmt : Stmt::Var)
     if (init = stmt.initializer).nil?
       "(var #{stmt.name.lexeme} nil)"
     else
       parenthesize("var #{stmt.name.lexeme}", init)
+    end
+  end
+
+  def visit_function(stmt : Stmt::Function)
+    String.build do |str|
+      str << "(fun "
+      str << stmt.name.lexeme
+      str << " ("
+      str << stmt.params.map(&.lexeme).join(", ")
+      str << ")\n  "
+      str << stmt.body.map(&.accept(self).try &.gsub(/\n/, "\n  ")).join("\n  ")
+      str << "\n)"
     end
   end
 
@@ -72,6 +88,16 @@ class Crylox::Printer
 
   def visit_binary(expr : Expr::Binary)
     parenthesize(expr.operator.lexeme, expr.left, expr.right)
+  end
+
+  def visit_call(expr : Expr::Call)
+    String.build do |str|
+      str << "(call "
+      str << expr.callee.accept(self)
+      str << "("
+      str << expr.arguments.map(&.accept(self)).join(", ")
+      str << "))"
+    end
   end
 
   def visit_grouping(expr : Expr::Grouping)

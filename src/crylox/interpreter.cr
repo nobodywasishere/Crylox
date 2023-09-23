@@ -4,17 +4,37 @@ class Crylox::Interpreter
 
   class RuntimeError < Exception
     def initialize(message : String, token : Token)
-      super("  #{" " * (token.col - 1)}^\n[line #{token.line}, col #{token.col}] RuntimeError: #{message}")
+      super("   #{" " * (token.col - 1)}^\n[line #{token.line}, col #{token.col}] RuntimeError: #{message}")
     end
   end
 
-  class BreakStmt < RuntimeError
+  class ReturnStmt < RuntimeError
+    getter value : LiteralType
+
+    def initialize(message, token, @value)
+      super(message, token)
+    end
   end
 
-  class NextStmt < RuntimeError
+  class BreakStmt < RuntimeError; end
+
+  class NextStmt < RuntimeError; end
+
+  property globals : Crylox::Environment = Crylox::Environment.new
+  property env : Crylox::Environment
+
+  property stdout : IO = STDOUT
+  property stderr : IO = STDERR
+
+  def initialize
+    @env = globals
+
+    define_native("clock", Crylox::Native::Clock.new)
   end
 
-  property env : Crylox::Environment = Crylox::Environment.new
+  def define_native(name : String, method : LoxCallable)
+    globals.define(Token.new(TokenType::FUN, name, name, 0, 0), method)
+  end
 
   def interpret(statements : Array(Stmt)) : LiteralType
     last = nil
@@ -24,37 +44,45 @@ class Crylox::Interpreter
     end
 
     last
-  rescue ex : RuntimeError
-    puts ex
+  end
+
+  def execute(stmt : Stmt) : LiteralType
+    stmt.accept(self)
   end
 
   def evaluate(expr : Expr) : LiteralType
     expr.accept(self)
   end
 
-  private def execute(stmt : Stmt)
-    stmt.accept(self)
-  end
-
   # Statements
 
   def visit_block(stmt : Stmt::Block) : LiteralType
-    previous_env = env
+    execute_block(stmt.statements, Environment.new(env))
+  end
 
-    env = Environment.new
+  def execute_block(statements : Array(Stmt), env : Environment) : LiteralType
+    previous_env = self.env
+    self.env = env
 
-    stmt.statements.each do |s|
-      execute(s)
+    last = nil
+
+    begin
+      statements.each do |s|
+        last = execute(s)
+      end
+    ensure
+      self.env = previous_env
     end
-  ensure
-    env = previous_env
+
+    last
   end
 
   def visit_var(stmt : Stmt::Var) : LiteralType
     value = nil
+
     unless (init = stmt.initializer).nil?
       value = evaluate(init)
-    end
+    endm
 
     env.define(stmt.name, value)
   end
@@ -69,6 +97,12 @@ class Crylox::Interpreter
 
   def visit_expression(stmt : Stmt::Expression) : LiteralType
     evaluate(stmt.expression)
+  end
+
+  def visit_function(stmt : Stmt::Function) : LiteralType
+    function = LoxFunction.new(stmt, env)
+    env.define(stmt.name, function)
+    function
   end
 
   def visit_if(stmt : Stmt::If) : Nil
@@ -89,6 +123,10 @@ class Crylox::Interpreter
     end
   end
 
+  def visit_return(stmt : Stmt::Return) : Nil
+    raise ReturnStmt.new("return must be within a function", stmt.keyword, evaluate(stmt.value))
+  end
+
   def visit_break(stmt : Stmt::Break) : Nil
     raise BreakStmt.new("break must be within a for or while loop", stmt.token)
   end
@@ -98,7 +136,7 @@ class Crylox::Interpreter
   end
 
   def visit_print(stmt : Stmt::Print) : Nil
-    puts stringify(evaluate(stmt.expression))
+    stdout.puts stringify(evaluate(stmt.expression))
   end
 
   # Expressions
@@ -141,7 +179,7 @@ class Crylox::Interpreter
       when Float64
         -right
       else
-        error("Operand must be a number.", expr.operator)
+        raise error("Operand must be a number.", expr.operator)
       end
     else
       nil
@@ -162,28 +200,28 @@ class Crylox::Interpreter
       when {Float64, Float64}
         left > right
       else
-        error("Operand must be a number.", expr.operator)
+        raise error("Operand must be a number.", expr.operator)
       end
     when .greater_equal?
       case {left, right}
       when {Float64, Float64}
         left >= right
       else
-        error("Operand must be a number.", expr.operator)
+        raise error("Operand must be a number.", expr.operator)
       end
     when .less?
       case {left, right}
       when {Float64, Float64}
         left < right
       else
-        error("Operand must be a number.", expr.operator)
+        raise error("Operand must be a number.", expr.operator)
       end
     when .less_equal?
       case {left, right}
       when {Float64, Float64}
         left <= right
       else
-        error("Operand must be a number.", expr.operator)
+        raise error("Operand must be a number.", expr.operator)
       end
     when .bang_equal?
       left != right
@@ -194,7 +232,7 @@ class Crylox::Interpreter
       when {Float64, Float64}
         left - right
       else
-        error("Operand must be a number.", expr.operator)
+        raise error("Operand must be a number.", expr.operator)
       end
     when .plus?
       case {left, right}
@@ -203,33 +241,53 @@ class Crylox::Interpreter
       when {String, String}
         left + right
       else
-        error("Operands must be a number or a string.", expr.operator)
+        raise error("Operands must be a number or a string.", expr.operator)
       end
     when .slash?
       case {left, right}
       when {Float64, Float64}
         left / right
       else
-        error("Operand must be a number.", expr.operator)
+        raise error("Operand must be a number.", expr.operator)
       end
     when .star?
       case {left, right}
       when {Float64, Float64}
         left * right
       else
-        error("Operand must be a number.", expr.operator)
+        raise error("Operand must be a number.", expr.operator)
       end
     when .modulus?
       case {left, right}
       when {Float64, Float64}
         left % right
       else
-        error("Operand must be a number.", expr.operator)
+        raise error("Operand must be a number.", expr.operator)
       end
     else
-      error("Unknown operator #{expr.operator.lexeme}.", expr.operator)
-      nil
+      raise error("Unknown operator #{expr.operator.lexeme}.", expr.operator)
     end
+  end
+
+  def visit_call(expr : Expr::Call)
+    callee = evaluate(expr.callee)
+
+    arguments = [] of LiteralType
+    expr.arguments.each do |arg|
+      arguments << evaluate(arg)
+    end
+
+    unless callee.is_a? LoxCallable
+      raise error("Can only call functions and classes", expr.paren)
+    end
+
+    function = callee.as(LoxCallable)
+
+    unless arguments.size == function.arity
+      raise error("Expected #{function.arity} arguments but got #{arguments.size}.", expr.paren)
+    end
+
+    function.call(self, arguments)
   end
 
   def visit_comment(expr : Expr::Comment)
@@ -242,6 +300,8 @@ class Crylox::Interpreter
   end
 
   private def error(message : String, token : Token) : RuntimeError
-    raise RuntimeError.new(message, token)
+    ex = RuntimeError.new(message, token)
+    stderr.puts ex
+    ex
   end
 end

@@ -153,12 +153,12 @@ class Crylox::Scanner
   private def match(expected : Char)
     return false if at_end? || @source[@current] != expected
     @current += 1
-    return true
+    true
   end
 
   private def peek : Char
     return '\0' if at_end?
-    return @source[@current]
+    @source[@current]
   end
 
   private def peek_next : Char
