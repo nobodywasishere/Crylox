@@ -62,6 +62,9 @@ module Crylox
       "operator : Token",
       "right : Expr",
     ],
+    "Comment" => [
+      "body : Token",
+    ],
   }
 
   define_ast Stmt, {
@@ -76,12 +79,22 @@ module Crylox
       "then_branch : Stmt",
       "else_branch : Stmt?",
     ],
+    "While" => [
+      "condition : Expr",
+      "body : Stmt",
+    ],
     "Print" => [
       "expression : Expr",
     ],
     "Var" => [
       "name : Token",
       "initializer : Expr?",
+    ],
+    "Break" => [
+      "token : Token",
+    ],
+    "Next" => [
+      "token : Token",
     ],
   }
 end

@@ -1,6 +1,6 @@
 require "../spec_helper"
 
-describe Crylox::Expr::Printer do
+describe Crylox::Printer do
   it "prints an AST" do
     stmt = Crylox::Stmt::Expression.new(
       Crylox::Expr::Binary.new(
@@ -15,6 +15,6 @@ describe Crylox::Expr::Printer do
       )
     )
 
-    Crylox::Expr::Printer.print([stmt]).should eq("(* (- 123.0) (group 45.67))")
+    Crylox::Printer.print([stmt]).should eq("(* (- 123.0) (group 45.67))")
   end
 end

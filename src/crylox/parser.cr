@@ -1,9 +1,7 @@
 class Crylox::Parser
-  Log = ::Log.for(self)
-
   class ParseError < Exception
     def initialize(message : String, token : Token)
-      super("  #{" " * (token.col - 1)}^\n[line #{token.line}, col #{token.col}]: #{message}")
+      super("  #{" " * (token.col - 1)}^\n[line #{token.line}, col #{token.col}] ParseError: #{message}")
     end
   end
 
@@ -12,29 +10,27 @@ class Crylox::Parser
   end
 
   def parse : Array(Stmt)
-    Log.debug { "Parsing tokens" }
     statements = [] of Stmt
 
     until at_end?
-      Log.debug { "token: #{peek.lexeme}, at_end?: #{at_end?}" }
       stmt = declaration_stmt
       statements << stmt unless stmt.nil?
     end
 
     statements
-  rescue ParseError
-    return [] of Stmt
   end
 
   private def statement : Stmt
+    return for_stmt if match(TokenType::FOR)
+    return if_stmt if match(TokenType::IF)
     return print_stmt if match(TokenType::PRINT)
+    return while_stmt if match(TokenType::WHILE)
+    return break_stmt if match(TokenType::BREAK)
     return Stmt::Block.new(block_stmt) if match(TokenType::LEFT_BRACE)
     expression_stmt
   end
 
   private def expression : Expr
-    Log.debug { "Parsing expression" }
-
     assignment
   end
 
@@ -51,12 +47,85 @@ class Crylox::Parser
     nil
   end
 
-  private def print_stmt : Stmt::Print
-    Log.debug { "Parsing print stmt" }
+  private def for_stmt : Stmt::Block | Stmt::While
+    consume(TokenType::LEFT_PAREN, "Expect '(' after 'for'.")
 
+    initializer : Stmt? = nil
+    if match(TokenType::SEMICOLON)
+      initializer = nil
+    elsif match(TokenType::VAR)
+      initializer = var_declaration
+    else
+      initializer = expression_stmt
+    end
+
+    condition : Expr? = nil
+    unless check(TokenType::SEMICOLON)
+      condition = expression
+    end
+    consume(TokenType::SEMICOLON, "Expect ';' after loop condition.")
+
+    increment : Expr? = nil
+    unless check(TokenType::RIGHT_PAREN)
+      increment = expression
+    end
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after for clauses.")
+
+    body = statement
+
+    unless increment.nil?
+      body = Stmt::Block.new([body, Stmt::Expression.new(increment)])
+    end
+
+    if condition.nil?
+      condition = Expr::Literal.new(true)
+    end
+    body = Stmt::While.new(condition, body)
+
+    unless initializer.nil?
+      body = Stmt::Block.new([initializer, body])
+    end
+
+    body
+  end
+
+  private def if_stmt : Stmt::If
+    consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.")
+    condition = expression
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after if condition.")
+
+    then_branch = statement
+    else_branch = match(TokenType::ELSE) ? statement : nil
+
+    Stmt::If.new(condition, then_branch, else_branch)
+  end
+
+  private def print_stmt : Stmt::Print
     value = expression
     consume(TokenType::SEMICOLON, "Expected ';' after value.")
     Stmt::Print.new(value)
+  end
+
+  private def while_stmt : Stmt::While
+    consume(TokenType::LEFT_PAREN, "Expect '(' after 'while'.")
+    condition = expression
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after while condition.")
+
+    body = statement
+
+    Stmt::While.new(condition, body)
+  end
+
+  private def break_stmt : Stmt::Break
+    br = Stmt::Break.new(previous)
+    consume(TokenType::SEMICOLON, "Expected ';' after break.")
+    br
+  end
+
+  private def next_stmt : Stmt::Next
+    nx = Stmt::Next.new(previous)
+    consume(TokenType::SEMICOLON, "Expected ';' after next.")
+    nx
   end
 
   private def var_declaration : Stmt::Var
@@ -72,10 +141,10 @@ class Crylox::Parser
   end
 
   private def expression_stmt : Stmt::Expression
-    Log.debug { "Parsing expression stmt" }
-
     expr = expression
-    consume(TokenType::SEMICOLON, "Expected ';' after expression.")
+    unless expr.is_a? Expr::Comment
+      consume(TokenType::SEMICOLON, "Expected ';' after expression.")
+    end
     Stmt::Expression.new(expr)
   end
 
@@ -95,7 +164,7 @@ class Crylox::Parser
   # Expression parsers
 
   private def assignment : Expr
-    expr = equality
+    expr = logical
 
     if match(TokenType::EQUAL)
       equals = previous
@@ -112,14 +181,22 @@ class Crylox::Parser
     expr
   end
 
-  private def equality : Expr
-    Log.debug { "Parsing equality" }
+  private def logical : Expr
+    expr = equality
 
+    while match(TokenType::AND, TokenType::OR, TokenType::NAND, TokenType::NOR, TokenType::XOR, TokenType::XNOR)
+      operator = previous
+      right = logical
+      expr = Expr::Logical.new(expr, operator, right)
+    end
+
+    expr
+  end
+
+  private def equality : Expr
     expr = comparison
 
     while match(TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL)
-      Log.debug { "Matched equality on #{previous.lexeme}" }
-
       operator = previous
       right = comparison
       expr = Expr::Binary.new(expr, operator, right)
@@ -129,13 +206,9 @@ class Crylox::Parser
   end
 
   private def comparison : Expr
-    Log.debug { "Parsing comparison" }
-
     expr = term
 
     while match(TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS, TokenType::LESS_EQUAL)
-      Log.debug { "Matched comparison on #{previous.lexeme}" }
-
       operator = previous
       right = term
       expr = Expr::Binary.new(expr, operator, right)
@@ -145,13 +218,9 @@ class Crylox::Parser
   end
 
   private def term : Expr
-    Log.debug { "Parsing term" }
-
     expr = factor
 
     while match(TokenType::MINUS, TokenType::PLUS)
-      Log.debug { "Matched term on #{previous.lexeme}" }
-
       operator = previous
       right = factor
       expr = Expr::Binary.new(expr, operator, right)
@@ -161,11 +230,9 @@ class Crylox::Parser
   end
 
   private def factor : Expr
-    Log.debug { "Parsing factor" }
-
     expr = unary
 
-    while match(TokenType::SLASH, TokenType::STAR)
+    while match(TokenType::SLASH, TokenType::STAR, TokenType::MODULUS)
       operator = previous
       right = unary
       expr = Expr::Binary.new(expr, operator, right)
@@ -175,11 +242,7 @@ class Crylox::Parser
   end
 
   private def unary : Expr
-    Log.debug { "Parsing unary" }
-
     if match(TokenType::BANG, TokenType::MINUS)
-      Log.debug { "Matched unary on #{previous.lexeme}" }
-
       operator = previous
       right = unary
       return Expr::Unary.new(operator, right)
@@ -189,35 +252,15 @@ class Crylox::Parser
   end
 
   private def primary : Expr
-    Log.debug { "Parsing primary" }
+    return Expr::Literal.new(false) if match(TokenType::FALSE)
+    return Expr::Literal.new(true) if match(TokenType::TRUE)
+    return Expr::Literal.new(nil) if match(TokenType::NIL)
+    return Expr::Literal.new(previous.literal) if match(TokenType::NUMBER, TokenType::STRING)
 
-    if match(TokenType::FALSE)
-      Log.debug { "Matched false on #{previous.type} (#{previous.lexeme})" }
-      return Expr::Literal.new(false)
-    end
-
-    if match(TokenType::TRUE)
-      Log.debug { "Matched true on #{previous.lexeme}" }
-      return Expr::Literal.new(true)
-    end
-
-    if match(TokenType::NIL)
-      Log.debug { "Matched nil on #{previous.lexeme}" }
-      return Expr::Literal.new(nil)
-    end
-
-    if match(TokenType::NUMBER, TokenType::STRING)
-      Log.debug { "Matched number, string on #{previous.lexeme}" }
-      return Expr::Literal.new(previous.literal)
-    end
-
-    if match(TokenType::IDENTIFIER)
-      return Expr::Variable.new(previous)
-    end
+    return Expr::Variable.new(previous) if match(TokenType::IDENTIFIER)
+    return Expr::Comment.new(previous) if match(TokenType::COMMENT)
 
     if match(TokenType::LEFT_PAREN)
-      Log.debug { "Matched ( on #{previous.lexeme}" }
-
       expr = expression
       consume(TokenType::RIGHT_PAREN, "Expected ')' after expression.")
       return Expr::Grouping.new(expr)
@@ -229,7 +272,6 @@ class Crylox::Parser
   # Helper methods
 
   private def match(*types : TokenType) : Bool
-    Log.debug { "Matching #{types} to #{peek.type}" }
     types.each do |type|
       if check(type)
         advance
@@ -242,7 +284,6 @@ class Crylox::Parser
 
   private def consume(type : TokenType, message : String) : Token
     if check(type)
-      Log.debug { "Consuming #{peek} for #{type}" }
       return advance
     end
 
@@ -251,13 +292,11 @@ class Crylox::Parser
 
   private def check(type : TokenType) : Bool
     return false if at_end?
-    Log.debug { "Checking #{peek.type} for #{type}: #{peek.type == type}" }
     peek.type == type
   end
 
   private def advance : Token
     @current += 1 unless at_end?
-    Log.debug { "Advancing to #{@current}: #{@tokens[@current].lexeme}" }
     previous
   end
 

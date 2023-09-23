@@ -4,16 +4,26 @@ class Crylox::Interpreter
 
   class RuntimeError < Exception
     def initialize(message : String, token : Token)
-      super("  #{" " * (token.col - 1)}^\n[line #{token.line}, col #{token.col}]: #{message}")
+      super("  #{" " * (token.col - 1)}^\n[line #{token.line}, col #{token.col}] RuntimeError: #{message}")
     end
+  end
+
+  class BreakStmt < RuntimeError
+  end
+
+  class NextStmt < RuntimeError
   end
 
   property env : Crylox::Environment = Crylox::Environment.new
 
-  def interpret(statements : Array(Stmt)) : Nil
+  def interpret(statements : Array(Stmt)) : LiteralType
+    last = nil
+
     statements.each do |stmt|
-      execute(stmt)
+      last = execute(stmt)
     end
+
+    last
   rescue ex : RuntimeError
     puts ex
   end
@@ -57,8 +67,34 @@ class Crylox::Interpreter
     value
   end
 
-  def visit_expression(stmt : Stmt::Expression) : Nil
+  def visit_expression(stmt : Stmt::Expression) : LiteralType
     evaluate(stmt.expression)
+  end
+
+  def visit_if(stmt : Stmt::If) : Nil
+    if evaluate(stmt.condition)
+      execute(stmt.then_branch)
+    elsif !(else_branch = stmt.else_branch).nil?
+      execute(else_branch)
+    end
+  end
+
+  def visit_while(stmt : Stmt::While) : Nil
+    while evaluate(stmt.condition)
+      begin
+        execute(stmt.body)
+      rescue BreakStmt
+        break
+      end
+    end
+  end
+
+  def visit_break(stmt : Stmt::Break) : Nil
+    raise BreakStmt.new("break must be within a for or while loop", stmt.token)
+  end
+
+  def visit_next(stmt : Stmt::Next) : Nil
+    raise NextStmt.new("next must be within a for or while loop", stmt.token)
   end
 
   def visit_print(stmt : Stmt::Print) : Nil
@@ -69,6 +105,25 @@ class Crylox::Interpreter
 
   def visit_literal(expr : Expr::Literal) : LiteralType
     expr.value
+  end
+
+  def visit_logical(expr : Expr::Logical) : LiteralType
+    left = evaluate(expr.left)
+
+    case expr.operator.type
+    when .and?
+      left && evaluate(expr.right)
+    when .or?
+      left || evaluate(expr.right)
+    when .nand?
+      !left || !evaluate(expr.right)
+    when .nor?
+      !left && !evaluate(expr.right)
+    when .xor?
+      !!left == !!evaluate(expr.right)
+    when .xnor?
+      !!left != !!evaluate(expr.right)
+    end
   end
 
   def visit_grouping(expr : Expr::Grouping) : LiteralType
@@ -164,10 +219,20 @@ class Crylox::Interpreter
       else
         error("Operand must be a number.", expr.operator)
       end
+    when .modulus?
+      case {left, right}
+      when {Float64, Float64}
+        left % right
+      else
+        error("Operand must be a number.", expr.operator)
+      end
     else
       error("Unknown operator #{expr.operator.lexeme}.", expr.operator)
       nil
     end
+  end
+
+  def visit_comment(expr : Expr::Comment)
   end
 
   # Helper methods

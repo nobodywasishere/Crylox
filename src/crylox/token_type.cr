@@ -47,6 +47,15 @@ module Crylox
     VAR
     WHILE
 
+    # Add-on keywords
+    NAND
+    NOR
+    XOR
+    XNOR
+    BREAK
+    NEXT
+    MODULUS
+
     EOF
   end
 end

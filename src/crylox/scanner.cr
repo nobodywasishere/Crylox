@@ -1,8 +1,11 @@
 class Crylox::Scanner
-  Log = ::Log.for(self)
-
   Keywords = {
     "and"    => :and,
+    "or"     => :or,
+    "nand"   => :nand,
+    "nor"    => :nor,
+    "xor"    => :xor,
+    "xnor"   => :xnor,
     "class"  => :class,
     "else"   => :else,
     "false"  => :false,
@@ -10,7 +13,6 @@ class Crylox::Scanner
     "fun"    => :fun,
     "if"     => :if,
     "nil"    => :nil,
-    "or"     => :or,
     "print"  => :print,
     "return" => :return,
     "super"  => :super,
@@ -18,10 +20,11 @@ class Crylox::Scanner
     "true"   => :true,
     "var"    => :var,
     "while"  => :while,
+    "break"  => :break,
+    "next"   => :next,
   } of String => TokenType
 
   def initialize(source : String)
-    Log.debug { "Scanning source: #{source}" }
     @source = source
     @tokens = [] of Token
     @start = 0
@@ -42,7 +45,6 @@ class Crylox::Scanner
 
   private def scan_token
     char = advance
-    Log.debug { "Scanning token #{char.inspect}" }
 
     case char
     when '('
@@ -65,6 +67,8 @@ class Crylox::Scanner
       add_token(:semicolon)
     when '*'
       add_token(:star)
+    when '%'
+      add_token(:modulus)
     when '!'
       match('=') ? add_token(:bang_equal) : add_token(:bang)
     when '='
@@ -181,6 +185,5 @@ class Crylox::Scanner
   end
 
   private def error(message : String)
-    Log.error &.emit(message, line: @line, col: @col)
   end
 end

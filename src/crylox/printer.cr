@@ -1,4 +1,4 @@
-class Crylox::Expr::Printer
+class Crylox::Printer
   include Crylox::Expr::Visitor
   include Crylox::Stmt::Visitor
 
@@ -13,7 +13,7 @@ class Crylox::Expr::Printer
       str << "(\n"
       stmt.statements.each do |s|
         str << "  "
-        str << s.accept(self)
+        str << s.accept(self).try &.gsub(/\n/, "\n  ")
         str << "\n"
       end
       str << ")"
@@ -28,14 +28,28 @@ class Crylox::Expr::Printer
     String.build do |str|
       str << "(if ("
       str << stmt.condition.accept(self)
-      str << ")\n  (    "
-      str << stmt.then_branch.accept(self)
+      str << ")\n  "
+      str << stmt.then_branch.accept(self).try &.gsub(/\n/, "\n  ")
       unless (else_branch = stmt.else_branch).nil?
-        str << "  )\n  ("
-        str << else_branch.accept(self)
+        str << "\n  "
+        str << else_branch.accept(self).try &.gsub(/\n/, "\n  ")
       end
-      str << "  )\n)"
+      str << "\n)"
     end
+  end
+
+  def visit_while(stmt : Stmt::While)
+    String.build do |str|
+      str << "(while ("
+      str << stmt.condition.accept(self)
+      str << ")\n  "
+      str << stmt.body.accept(self).try &.gsub(/\n/, "\n  ")
+      str << "\n)"
+    end
+  end
+
+  def visit_break(stmt : Stmt::Break)
+    "(break)"
   end
 
   def visit_print(stmt : Stmt::Print)
@@ -79,6 +93,10 @@ class Crylox::Expr::Printer
 
   def visit_variable(expr : Expr::Variable)
     "(= #{expr.name.lexeme})"
+  end
+
+  def visit_comment(expr : Expr::Comment)
+    "(#{expr.body.lexeme})"
   end
 
   # Helper methods

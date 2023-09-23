@@ -1,13 +1,11 @@
 require "../crylox"
 
 class Crylox::CLI
-  Log = ::Log.for(self)
-
   def execute(args : Array(String))
-    case args.first
-    when "i", nil
+    case args[0]?
+    when "i", "interpreter", nil
       run_prompt
-    when "f"
+    when "f", "file"
       run_file(args[1])
     when "ast"
       run_prompt(true)
@@ -43,8 +41,6 @@ class Crylox::CLI
     scanner = Scanner.new(source)
     tokens = scanner.scan_tokens
 
-    tokens.each { |token| Log.debug { token.inspect } }
-
     parser = Parser.new(tokens)
     statements = parser.parse
 
@@ -58,7 +54,7 @@ class Crylox::CLI
     parser = Parser.new(tokens)
     statements = parser.parse
 
-    puts Crylox::Expr::Printer.print(statements)
+    puts Crylox::Printer.print(statements)
   end
 end
 
