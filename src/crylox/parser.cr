@@ -286,7 +286,7 @@ class Crylox::Parser
   end
 
   private def call
-    expr = primary
+    expr = lambda
 
     loop do
       if match(TokenType::LEFT_PAREN)
@@ -297,6 +297,28 @@ class Crylox::Parser
     end
 
     expr
+  end
+
+  private def lambda : Expr
+    if match(TokenType::LAMBDA, TokenType::MINUS_GREATER)
+      consume(TokenType::LEFT_PAREN, "Expect '(' after lambda")
+      parameters = [] of Token
+
+      unless check(TokenType::RIGHT_PAREN)
+        parameters << consume(TokenType::IDENTIFIER, "Expect parameter name.")
+        while match(TokenType::COMMA)
+          error("Cannot have more than 255 parameters.", peek) if parameters.size >= 255
+          parameters << consume(TokenType::IDENTIFIER, "Expect parameter name.")
+        end
+      end
+      consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters.")
+      consume(TokenType::LEFT_BRACE, "Expect '{' before lambda body.")
+      body = block_stmt
+
+      return Expr::Lambda.new(parameters, body)
+    end
+
+    primary
   end
 
   private def finish_call(callee : Expr) : Expr

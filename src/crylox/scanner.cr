@@ -22,6 +22,7 @@ class Crylox::Scanner
     "while"  => :while,
     "break"  => :break,
     "next"   => :next,
+    "lambda" => :lambda,
   } of String => TokenType
 
   def initialize(source : String)
@@ -60,7 +61,11 @@ class Crylox::Scanner
     when '.'
       add_token(:dot)
     when '-'
-      add_token(:minus)
+      if match('>')
+        add_token(:minus_greater)
+      else
+        add_token(:minus)
+      end
     when '+'
       add_token(:plus)
     when ';'

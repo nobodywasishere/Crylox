@@ -82,7 +82,7 @@ class Crylox::Interpreter
 
     unless (init = stmt.initializer).nil?
       value = evaluate(init)
-    endm
+    end
 
     env.define(stmt.name, value)
   end
@@ -288,6 +288,10 @@ class Crylox::Interpreter
     end
 
     function.call(self, arguments)
+  end
+
+  def visit_lambda(expr : Expr::Lambda)
+    LoxFunction.new(expr, env)
   end
 
   def visit_comment(expr : Expr::Comment)

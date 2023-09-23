@@ -70,6 +70,10 @@ module Crylox
     "Comment" => [
       "body : Token",
     ],
+    "Lambda" => [
+      "params : Array(Token)",
+      "body : Array(Stmt)",
+    ],
   }
 
   define_ast Stmt, {

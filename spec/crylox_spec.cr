@@ -17,7 +17,7 @@ describe Crylox do
       var b = 1;
       var temp = 0;
 
-      for (var i = 0; i < 10; i = i + 1) {
+      for (var i = 0; i < 10; i += 1) {
         b = temp + b;
         temp = a;
         a = b;
@@ -55,7 +55,7 @@ describe Crylox do
     stdout.to_s.should eq("\"Hi, how are you!\"\n")
   end
 
-  it "closures" do
+  it "supports closures" do
     stdout = IO::Memory.new
     stderr = IO::Memory.new
 
@@ -81,5 +81,31 @@ describe Crylox do
 
     stderr.to_s.should eq("")
     stdout.to_s.should eq("1.0\n2.0\n3.0\n4.0\n")
+  end
+
+  it "supports lambdas" do
+    stdout = IO::Memory.new
+    stderr = IO::Memory.new
+
+    Crylox.execute(stdout, stderr) {
+      <<-LOX
+      fun thrice(fn) {
+        for (var i = 1; i <= 3; i = i + 1) {
+          fn(i);
+        }
+
+        thrice;
+      }
+
+      thrice(lambda (a) {
+        print a;
+      })(->(b) {
+        print b + 3;
+      });
+      LOX
+    }
+
+    stderr.to_s.should eq("")
+    stdout.to_s.should eq("1.0\n2.0\n3.0\n4.0\n5.0\n6.0\n")
   end
 end

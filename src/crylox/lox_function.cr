@@ -1,10 +1,10 @@
 class Crylox::LoxFunction
   include LoxCallable
 
-  getter declaration : Stmt::Function
+  getter declaration : Stmt::Function | Expr::Lambda
   getter closure : Environment?
 
-  def initialize(@declaration : Stmt::Function, @closure : Environment)
+  def initialize(@declaration, @closure)
   end
 
   def arity
@@ -24,6 +24,10 @@ class Crylox::LoxFunction
   end
 
   def to_s(io : IO)
-    io << "<fn #{declaration.name.lexeme}>"
+    if declaration.is_a? Stmt::Function
+      io << "<fn #{declaration.as(Stmt::Function).name.lexeme}>"
+    else
+      io << "<fn lambda>"
+    end
   end
 end
