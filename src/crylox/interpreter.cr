@@ -20,13 +20,14 @@ class Crylox::Interpreter
 
   class NextStmt < RuntimeError; end
 
-  property globals : Crylox::Environment = Crylox::Environment.new
-  property env : Crylox::Environment
-
   property stdout : IO = STDOUT
   property stderr : IO = STDERR
 
+  property globals : Crylox::Environment
+  property env : Crylox::Environment
+
   def initialize
+    @globals = Crylox::Environment.new(nil, stdout, stderr)
     @env = globals
 
     define_native("clock", Crylox::Native::Clock.new)
@@ -57,7 +58,7 @@ class Crylox::Interpreter
   # Statements
 
   def visit_block(stmt : Stmt::Block) : LiteralType
-    execute_block(stmt.statements, Environment.new(env))
+    execute_block(stmt.statements, Environment.new(env, stdout, stderr))
   end
 
   def execute_block(statements : Array(Stmt), env : Environment) : LiteralType

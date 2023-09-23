@@ -63,17 +63,19 @@ class Crylox::Scanner
     when '-'
       if match('>')
         add_token(:minus_greater)
+      elsif match('=')
+        add_token(:minus_equal)
       else
         add_token(:minus)
       end
     when '+'
-      add_token(:plus)
+      match('=') ? add_token(:plus_equal) : add_token(:plus)
     when ';'
       add_token(:semicolon)
     when '*'
-      add_token(:star)
+      match('=') ? add_token(:star_equal) : add_token(:star)
     when '%'
-      add_token(:modulus)
+      match('=') ? add_token(:mod_equal) : add_token(:modulus)
     when '!'
       match('=') ? add_token(:bang_equal) : add_token(:bang)
     when '='
@@ -92,6 +94,8 @@ class Crylox::Scanner
           advance
         end
         add_token(:comment, @source[@start...@current].sub(/^\/\/+ */, ""))
+      elsif match('=')
+        add_token(:slash_equal)
       else
         add_token(:slash)
       end

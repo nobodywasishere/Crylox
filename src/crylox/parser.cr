@@ -147,6 +147,8 @@ class Crylox::Parser
 
     if match(TokenType::EQUAL)
       initializer = expression
+    elsif match(TokenType::PLUS_EQUAL, TokenType::MINUS_EQUAL, TokenType::SLASH_EQUAL, TokenType::STAR_EQUAL, TokenType::MOD_EQUAL)
+      initializer = equal_assignment(Expr::Variable.new(name), previous)
     end
 
     consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.")
@@ -200,10 +202,14 @@ class Crylox::Parser
   private def assignment : Expr
     expr = logical
 
-    if match(TokenType::EQUAL)
+    if match(TokenType::EQUAL, TokenType::PLUS_EQUAL, TokenType::MINUS_EQUAL, TokenType::SLASH_EQUAL, TokenType::STAR_EQUAL, TokenType::MOD_EQUAL)
       equals = previous
 
-      value = assignment
+      if equals.type == TokenType::EQUAL
+        value = assignment
+      else
+        value = equal_assignment(expr, equals)
+      end
 
       if expr.is_a? Expr::Variable
         return Expr::Assign.new(expr.name, value)
@@ -213,6 +219,27 @@ class Crylox::Parser
     end
 
     expr
+  end
+
+  private def equal_assignment(name : Expr, equals : Token) : Expr
+    type = case equals.type
+           when .plus_equal?
+             TokenType::PLUS
+           when .minus_equal?
+             TokenType::MINUS
+           when .star_equal?
+             TokenType::STAR
+           when .slash_equal?
+             TokenType::SLASH
+           when .mod_equal?
+             TokenType::MODULUS
+           else
+             raise error("Unknown equals assignment operator.", equals)
+           end
+
+    operator = Token.new(type, equals.lexeme[0..-2], equals.literal, equals.line, equals.col)
+
+    Expr::Binary.new(name, operator, logical)
   end
 
   private def logical : Expr

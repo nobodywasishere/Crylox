@@ -12,7 +12,7 @@ class Crylox::LoxFunction
   end
 
   def call(interpreter : Interpreter, arguments : Array(LiteralType)) : LiteralType
-    env = Environment.new(closure)
+    env = Environment.new(closure, interpreter.stdout, interpreter.stderr)
 
     declaration.params.each_with_index do |param, idx|
       env.define(param, arguments[idx])

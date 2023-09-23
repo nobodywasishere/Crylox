@@ -30,7 +30,7 @@ describe Crylox::Parser do
   it "parses for loops" do
     parse_source_to_print_ast {
       <<-LOX
-      for (var i = 1; i < 5; i = i + 1) {
+      for (var i = 1; i < 5; i += 1) {
         print i;
         // hello world
       }

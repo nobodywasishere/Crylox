@@ -1,7 +1,7 @@
 class Crylox::Environment
   property enclosing : Environment?
 
-  def initialize(@enclosing = nil)
+  def initialize(@enclosing = nil, @stdout : IO = STDOUT, @stderr : IO = STDERR)
     @values = {} of String => LiteralType
   end
 
@@ -18,7 +18,7 @@ class Crylox::Environment
       return enclosing.try &.get(name)
     end
 
-    raise Crylox::Interpreter::RuntimeError.new("Undefined variable #{name.lexeme}", name)
+    raise error("Undefined variable #{name.lexeme}", name)
   end
 
   def assign(name : Token, value : LiteralType)
@@ -30,10 +30,16 @@ class Crylox::Environment
       return enclosing.try &.assign(name, value)
     end
 
-    raise Crylox::Interpreter::RuntimeError.new("Undefined variable #{name.lexeme}", name)
+    raise error("Undefined variable #{name.lexeme}", name)
   end
 
   def defined?(name : Token)
     @values.keys.any? { |k| k == name.lexeme }
+  end
+
+  private def error(message, token)
+    ex = Interpreter::RuntimeError.new message, token
+    @stderr.puts ex
+    ex
   end
 end

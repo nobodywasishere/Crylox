@@ -64,7 +64,7 @@ describe Crylox do
       fun make_counter() {
         var i = 0;
         fun count() {
-          i = i + 1;
+          i += 1;
           print i;
         }
 
@@ -90,7 +90,7 @@ describe Crylox do
     Crylox.execute(stdout, stderr) {
       <<-LOX
       fun thrice(fn) {
-        for (var i = 1; i <= 3; i = i + 1) {
+        for (var i = 1; i <= 3; i += 1) {
           fn(i);
         }
 
