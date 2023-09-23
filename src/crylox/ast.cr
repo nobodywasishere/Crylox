@@ -4,15 +4,17 @@ macro define_ast(name, types)
     end
   end
 
-  abstract class {{name}}::Visitor
+  module {{name}}::Visitor
     {% for type, fields in types %}
     def visit_{{type.downcase.id}}({{name.id.downcase}} : {{name}}::{{type.id}})
+      raise "Undefined visitor method visit_{{type.downcase.id}}."
     end
     {% end %}
   end
 
   {% for type, fields in types %}
   class {{name}}::{{type.id}} < {{name}}
+
     {% for field in fields %}
     getter {{field.id}}
     {% end %}

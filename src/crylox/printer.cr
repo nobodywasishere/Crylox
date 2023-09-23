@@ -1,7 +1,56 @@
-class Crylox::Expr::Printer < Crylox::Expr::Visitor
-  def self.print(expr : Expr)
-    expr.accept(self.new)
+class Crylox::Expr::Printer
+  include Crylox::Expr::Visitor
+  include Crylox::Stmt::Visitor
+
+  def self.print(stmts : Array(Stmt))
+    stmts.map { |stmt| stmt.accept(new) }.join("\n")
   end
+
+  # Statements
+
+  def visit_block(stmt : Stmt::Block)
+    String.build do |str|
+      str << "(\n"
+      stmt.statements.each do |s|
+        str << "  "
+        str << s.accept(self)
+        str << "\n"
+      end
+      str << ")"
+    end
+  end
+
+  def visit_expression(stmt : Stmt::Expression)
+    stmt.expression.accept(self)
+  end
+
+  def visit_if(stmt : Stmt::If)
+    String.build do |str|
+      str << "(if ("
+      str << stmt.condition.accept(self)
+      str << ")\n  (    "
+      str << stmt.then_branch.accept(self)
+      unless (else_branch = stmt.else_branch).nil?
+        str << "  )\n  ("
+        str << else_branch.accept(self)
+      end
+      str << "  )\n)"
+    end
+  end
+
+  def visit_print(stmt : Stmt::Print)
+    parenthesize("print", stmt.expression)
+  end
+
+  def visit_var(stmt : Stmt::Var)
+    if (init = stmt.initializer).nil?
+      "(var #{stmt.name.lexeme} nil)"
+    else
+      parenthesize("var #{stmt.name.lexeme}", init)
+    end
+  end
+
+  # Expressions
 
   def visit_assign(expr : Expr::Assign)
     parenthesize("= #{expr.name.lexeme}", expr.value)
@@ -27,6 +76,12 @@ class Crylox::Expr::Printer < Crylox::Expr::Visitor
   def visit_unary(expr : Expr::Unary)
     parenthesize(expr.operator.lexeme, expr.right)
   end
+
+  def visit_variable(expr : Expr::Variable)
+    "(= #{expr.name.lexeme})"
+  end
+
+  # Helper methods
 
   private def parenthesize(name : String, *exprs : Expr)
     String.build do |str|

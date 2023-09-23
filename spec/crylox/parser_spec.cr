@@ -7,11 +7,9 @@ def parse_source_to_print_ast(source : String) : String?
   tokens.each { |token| Log.debug { token.inspect } }
 
   parser = Crylox::Parser.new(tokens)
-  expression = parser.parse
+  stmts = parser.parse
 
-  return nil if expression.nil?
-
-  Crylox::Expr::Printer.print(expression)
+  Crylox::Expr::Printer.print(stmts)
 end
 
 describe Crylox::Parser do

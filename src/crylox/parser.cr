@@ -1,23 +1,115 @@
 class Crylox::Parser
   Log = ::Log.for(self)
 
-  class ParseError < Exception; end
+  class ParseError < Exception
+    def initialize(message : String, token : Token)
+      super("  #{" " * (token.col - 1)}^\n[line #{token.line}, col #{token.col}]: #{message}")
+    end
+  end
 
   def initialize(@tokens : Array(Token))
     @current = 0
   end
 
-  def parse : Expr?
+  def parse : Array(Stmt)
     Log.debug { "Parsing tokens" }
-    expression
+    statements = [] of Stmt
+
+    until at_end?
+      Log.debug { "token: #{peek.lexeme}, at_end?: #{at_end?}" }
+      stmt = declaration_stmt
+      statements << stmt unless stmt.nil?
+    end
+
+    statements
   rescue ParseError
-    return nil
+    return [] of Stmt
+  end
+
+  private def statement : Stmt
+    return print_stmt if match(TokenType::PRINT)
+    return Stmt::Block.new(block_stmt) if match(TokenType::LEFT_BRACE)
+    expression_stmt
   end
 
   private def expression : Expr
     Log.debug { "Parsing expression" }
 
-    equality
+    assignment
+  end
+
+  # Statement parsers
+
+  private def declaration_stmt : Stmt?
+    return var_declaration if match(TokenType::VAR)
+    statement
+  rescue ex : ParseError
+    puts ex
+
+    synchronize
+
+    nil
+  end
+
+  private def print_stmt : Stmt::Print
+    Log.debug { "Parsing print stmt" }
+
+    value = expression
+    consume(TokenType::SEMICOLON, "Expected ';' after value.")
+    Stmt::Print.new(value)
+  end
+
+  private def var_declaration : Stmt::Var
+    name = consume(TokenType::IDENTIFIER, "Expect variable name.")
+    initializer = nil
+
+    if match(TokenType::EQUAL)
+      initializer = expression
+    end
+
+    consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.")
+    return Stmt::Var.new(name, initializer)
+  end
+
+  private def expression_stmt : Stmt::Expression
+    Log.debug { "Parsing expression stmt" }
+
+    expr = expression
+    consume(TokenType::SEMICOLON, "Expected ';' after expression.")
+    Stmt::Expression.new(expr)
+  end
+
+  private def block_stmt
+    statements = [] of Stmt
+
+    until check(TokenType::RIGHT_BRACE) || at_end?
+      stmt = declaration_stmt
+      statements << stmt unless stmt.nil?
+    end
+
+    consume(TokenType::RIGHT_BRACE, "Expect '}' after block.")
+
+    statements
+  end
+
+  # Expression parsers
+
+  private def assignment : Expr
+    expr = equality
+
+    if match(TokenType::EQUAL)
+      equals = previous
+
+      value = assignment
+
+      if expr.is_a? Expr::Variable
+        return Expr::Assign.new(expr.name, value)
+      end
+
+      error("Invalid assignment target.", equals)
+    end
+
+    expr
   end
 
   private def equality : Expr
@@ -119,6 +211,10 @@ class Crylox::Parser
       return Expr::Literal.new(previous.literal)
     end
 
+    if match(TokenType::IDENTIFIER)
+      return Expr::Variable.new(previous)
+    end
+
     if match(TokenType::LEFT_PAREN)
       Log.debug { "Matched ( on #{previous.lexeme}" }
 
@@ -127,8 +223,10 @@ class Crylox::Parser
       return Expr::Grouping.new(expr)
     end
 
-    raise error("Expected expression.", peek)
+    error("Expected expression.", peek)
   end
+
+  # Helper methods
 
   private def match(*types : TokenType) : Bool
     Log.debug { "Matching #{types} to #{peek.type}" }
@@ -143,9 +241,12 @@ class Crylox::Parser
   end
 
   private def consume(type : TokenType, message : String) : Token
-    return advance if check(type)
+    if check(type)
+      Log.debug { "Consuming #{peek} for #{type}" }
+      return advance
+    end
 
-    raise error(message, peek)
+    error(message, peek)
   end
 
   private def check(type : TokenType) : Bool
@@ -161,7 +262,7 @@ class Crylox::Parser
   end
 
   private def at_end? : Bool
-    peek.type == :eof
+    peek.type.eof?
   end
 
   private def peek : Token
@@ -173,15 +274,14 @@ class Crylox::Parser
   end
 
   private def error(message : String, token : Token) : ParseError
-    Log.error &.emit(message, line: token.line, col: token.col)
-    ParseError.new "[line #{token.line}, col #{token.col}]: #{message}"
+    raise ParseError.new message, token
   end
 
   private def synchronize : Nil
     advance
 
     until at_end?
-      return if previous.type == :semicolon
+      return if previous.type.semicolon?
 
       case peek.type
       when .class?, .for?, .fun?, .if?, .print?, .return?, .var?, .while?
