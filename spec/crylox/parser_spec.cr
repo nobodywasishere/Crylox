@@ -1,10 +1,12 @@
 require "../spec_helper"
 
 def parse_source_to_print_ast(source : String) : String?
-  scanner = Crylox::Scanner.new(source)
+  log = Crylox::Log.new(source)
+
+  scanner = Crylox::Scanner.new(source, log)
   tokens = scanner.scan_tokens
 
-  parser = Crylox::Parser.new(tokens)
+  parser = Crylox::Parser.new(tokens, log)
   stmts = parser.parse
 
   Crylox::Printer.print(stmts)

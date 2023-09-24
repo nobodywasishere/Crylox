@@ -64,6 +64,7 @@ module Crylox
     STAR_EQUAL
     MOD_EQUAL
 
+    ERROR
     EOF
   end
 end

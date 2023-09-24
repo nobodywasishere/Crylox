@@ -8,7 +8,7 @@ class Crylox::Token
   def initialize(@type, @lexeme, @literal, @line, @col)
   end
 
-  def to_s
-    "#{type} #{lexeme.inspect} #{literal.inspect}"
+  def to_s(io : IO)
+    io << "#{type} #{lexeme.inspect} #{literal.inspect}"
   end
 end

@@ -2,16 +2,13 @@ require "./spec_helper"
 
 describe Crylox do
   it "interprets code" do
-    Crylox.execute("1 + 1;").should eq(2)
-    Crylox.execute("true xor true;").should eq(true)
-    Crylox.execute("\"a\" + \"b\";").should eq("ab")
+    Crylox.execute("1 + 1;").result.should eq(2)
+    Crylox.execute("true xor true;").result.should eq(true)
+    Crylox.execute("\"a\" + \"b\";").result.should eq("ab")
   end
 
   it "interprets for loops" do
-    stdout = IO::Memory.new
-    stderr = IO::Memory.new
-
-    Crylox.execute(stdout, stderr) {
+    res = Crylox.execute {
       <<-LOX
       var a = 0;
       var b = 1;
@@ -30,17 +27,15 @@ describe Crylox do
       print a + b;
       b;
       LOX
-    }.should eq(13)
+    }
 
-    stderr.to_s.should eq("")
-    stdout.to_s.should eq("26.0\n")
+    res.result.should eq(13)
+    res.stderr.should eq("")
+    res.stdout.should eq("26.0\n")
   end
 
   it "allows defining methods" do
-    stdout = IO::Memory.new
-    stderr = IO::Memory.new
-
-    Crylox.execute(stdout, stderr) {
+    res = Crylox.execute {
       <<-LOX
       fun say_hi(first, last) {
         "Hi, " + first + " " + last + "!";
@@ -49,17 +44,15 @@ describe Crylox do
       print say_hi("how are", "you");
       say_hi("<your name", "here>");
       LOX
-    }.should eq("Hi, <your name here>!")
+    }
 
-    stderr.to_s.should eq("")
-    stdout.to_s.should eq("\"Hi, how are you!\"\n")
+    res.result.should eq("Hi, <your name here>!")
+    res.stderr.should eq("")
+    res.stdout.should eq("\"Hi, how are you!\"\n")
   end
 
   it "supports closures" do
-    stdout = IO::Memory.new
-    stderr = IO::Memory.new
-
-    Crylox.execute(stdout, stderr) {
+    res = Crylox.execute {
       <<-LOX
       fun make_counter() {
         var i = 0;
@@ -79,15 +72,13 @@ describe Crylox do
       LOX
     }
 
-    stderr.to_s.should eq("")
-    stdout.to_s.should eq("1.0\n2.0\n3.0\n4.0\n")
+    res.result.should eq(nil)
+    res.stderr.should eq("")
+    res.stdout.should eq("1.0\n2.0\n3.0\n4.0\n")
   end
 
   it "supports lambdas" do
-    stdout = IO::Memory.new
-    stderr = IO::Memory.new
-
-    Crylox.execute(stdout, stderr) {
+    res = Crylox.execute {
       <<-LOX
       fun thrice(fn) {
         for (var i = 1; i <= 3; i += 1) {
@@ -102,10 +93,34 @@ describe Crylox do
       })(->(b) {
         print b + 3;
       });
+
+      true;
       LOX
     }
 
-    stderr.to_s.should eq("")
-    stdout.to_s.should eq("1.0\n2.0\n3.0\n4.0\n5.0\n6.0\n")
+    res.result.should eq(true)
+    res.stderr.should eq("")
+    res.stdout.should eq("1.0\n2.0\n3.0\n4.0\n5.0\n6.0\n")
+  end
+
+  it "resolves variables properly" do
+    res = Crylox.execute {
+      <<-LOX
+      var a = "global";
+      {
+        fun show_a() {
+          print a;
+        }
+
+        show_a();
+        var a = "block";
+        show_a();
+      }
+      LOX
+    }
+
+    res.result.should eq(nil)
+    res.stderr.should eq("")
+    res.stdout.should eq("\"global\"\n\"global\"\n")
   end
 end

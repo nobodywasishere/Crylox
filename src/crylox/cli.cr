@@ -31,31 +31,38 @@ class Crylox::CLI
         if ast
           run_ast line
         else
-          res = run(line)
-          puts "=: #{res.is_a?(String) ? res.inspect : res}"
+          res, err = run(line)
+          puts "=: #{res.is_a?(String) ? res.inspect : res}" unless err
         end
-      rescue ex : Parser::ParseError | Interpreter::RuntimeError
+      rescue ex : Crylox::Exception
       end
     end
   end
 
-  private def run(source : String) : LiteralType
-    @interpreter ||= Interpreter.new
+  private def run(source : String, log : Crylox::Log? = nil) : {LiteralType, Bool}
+    log ||= Crylox::Log.new(source)
 
-    scanner = Scanner.new(source)
+    @interpreter ||= Interpreter.new(log)
+
+    scanner = Scanner.new(source, log)
     tokens = scanner.scan_tokens
 
-    parser = Parser.new(tokens)
+    parser = Parser.new(tokens, log)
     statements = parser.parse
 
-    @interpreter.try &.interpret(statements)
+    resolver = Resolver.new(@interpreter.as(Interpreter), log)
+    resolver.resolve(statements)
+
+    {@interpreter.as(Interpreter).interpret(log, statements), log.had_error?}
   end
 
   private def run_ast(source : String)
-    scanner = Scanner.new(source)
+    log = Log.new(source)
+
+    scanner = Scanner.new(source, log)
     tokens = scanner.scan_tokens
 
-    parser = Parser.new(tokens)
+    parser = Parser.new(tokens, log)
     statements = parser.parse
 
     puts Crylox::Printer.print(statements)

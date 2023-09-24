@@ -1,14 +1,7 @@
 class Crylox::Parser
-  class ParseError < Exception
-    def initialize(message : String, token : Token)
-      super("   #{" " * (token.col - 1)}^\n[line #{token.line}, col #{token.col}] ParseError: #{message}")
-    end
-  end
+  class ParseError < Crylox::Exception; end
 
-  property stdout : IO = STDOUT
-  property stderr : IO = STDERR
-
-  def initialize(@tokens : Array(Token))
+  def initialize(@tokens : Array(Token), @log : Crylox::Log)
     @current = 0
   end
 
@@ -427,9 +420,8 @@ class Crylox::Parser
   end
 
   private def error(message : String, token : Token) : ParseError
-    ex = ParseError.new message, token
-    stderr.puts ex
-    ex
+    @log.error message, token, "Crylox::Parser"
+    ParseError.new message, token
   end
 
   private def synchronize : Nil

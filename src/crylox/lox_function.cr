@@ -4,7 +4,7 @@ class Crylox::LoxFunction
   getter declaration : Stmt::Function | Expr::Lambda
   getter closure : Environment?
 
-  def initialize(@declaration, @closure)
+  def initialize(@declaration, @closure, @log : Crylox::Log)
   end
 
   def arity
@@ -12,7 +12,7 @@ class Crylox::LoxFunction
   end
 
   def call(interpreter : Interpreter, arguments : Array(LiteralType)) : LiteralType
-    env = Environment.new(closure, interpreter.stdout, interpreter.stderr)
+    env = Environment.new(@log, closure)
 
     declaration.params.each_with_index do |param, idx|
       env.define(param, arguments[idx])

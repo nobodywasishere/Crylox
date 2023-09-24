@@ -1,15 +1,15 @@
 class Crylox::Environment
   property enclosing : Environment?
 
-  def initialize(@enclosing = nil, @stdout : IO = STDOUT, @stderr : IO = STDERR)
+  def initialize(@log : Crylox::Log, @enclosing = nil)
     @values = {} of String => LiteralType
   end
 
-  def define(name : Token, value : LiteralType)
+  def define(name : Token, value : LiteralType) : LiteralType
     @values[name.lexeme] = value
   end
 
-  def get(name : Token)
+  def get(name : Token) : LiteralType
     if defined? name
       return @values[name.lexeme]
     end
@@ -21,7 +21,15 @@ class Crylox::Environment
     raise error("Undefined variable #{name.lexeme}", name)
   end
 
-  def assign(name : Token, value : LiteralType)
+  def get_at(name : Token, distance : Int32) : LiteralType
+    if distance == 0
+      get(name)
+    else
+      enclosing.try &.get_at(name, distance - 1)
+    end
+  end
+
+  def assign(name : Token, value : LiteralType) : LiteralType
     if defined? name
       return @values[name.lexeme] = value
     end
@@ -33,13 +41,20 @@ class Crylox::Environment
     raise error("Undefined variable #{name.lexeme}", name)
   end
 
-  def defined?(name : Token)
+  def assign_at(name : Token, value : LiteralType, distance : Int32)
+    if distance == 0
+      assign(name, value)
+    else
+      enclosing.try &.assign_at(name, value, distance - 1)
+    end
+  end
+
+  def defined?(name : Token) : Bool
     @values.keys.any? { |k| k == name.lexeme }
   end
 
-  private def error(message, token)
-    ex = Interpreter::RuntimeError.new message, token
-    @stderr.puts ex
-    ex
+  private def error(message, token) : Interpreter::RuntimeError
+    @log.error message, token, "Crylox::Environment"
+    Interpreter::RuntimeError.new message, token
   end
 end

@@ -2,16 +2,12 @@ class Crylox::Interpreter
   include Crylox::Expr::Visitor
   include Crylox::Stmt::Visitor
 
-  class RuntimeError < Exception
-    def initialize(message : String, token : Token)
-      super("   #{" " * (token.col - 1)}^\n[line #{token.line}, col #{token.col}] RuntimeError: #{message}")
-    end
-  end
+  class RuntimeError < Crylox::Exception; end
 
   class ReturnStmt < RuntimeError
     getter value : LiteralType
 
-    def initialize(message, token, @value)
+    def initialize(@message, @token, @value)
       super(message, token)
     end
   end
@@ -20,15 +16,15 @@ class Crylox::Interpreter
 
   class NextStmt < RuntimeError; end
 
-  property stdout : IO = STDOUT
-  property stderr : IO = STDERR
-
   property globals : Crylox::Environment
   property env : Crylox::Environment
+  property locals : Hash(Expr, Int32)
+  property stdout : IO = STDOUT
 
-  def initialize
-    @globals = Crylox::Environment.new(nil, stdout, stderr)
+  def initialize(@log : Crylox::Log)
+    @globals = Crylox::Environment.new(@log)
     @env = globals
+    @locals = {} of Expr => Int32
 
     define_native("clock", Crylox::Native::Clock.new)
   end
@@ -37,7 +33,7 @@ class Crylox::Interpreter
     globals.define(Token.new(TokenType::FUN, name, name, 0, 0), method)
   end
 
-  def interpret(statements : Array(Stmt)) : LiteralType
+  def interpret(@log : Crylox::Log, statements : Array(Stmt)) : LiteralType
     last = nil
 
     statements.each do |stmt|
@@ -45,10 +41,17 @@ class Crylox::Interpreter
     end
 
     last
+  rescue ex : ReturnStmt
+    error(ex.message || "", ex.token)
+    nil
   end
 
   def execute(stmt : Stmt) : LiteralType
     stmt.accept(self)
+  end
+
+  def resolve(expr : Expr, depth : Int32)
+    locals[expr] = depth
   end
 
   def evaluate(expr : Expr) : LiteralType
@@ -58,7 +61,7 @@ class Crylox::Interpreter
   # Statements
 
   def visit_block(stmt : Stmt::Block) : LiteralType
-    execute_block(stmt.statements, Environment.new(env, stdout, stderr))
+    execute_block(stmt.statements, Environment.new(@log, env))
   end
 
   def execute_block(statements : Array(Stmt), env : Environment) : LiteralType
@@ -91,7 +94,12 @@ class Crylox::Interpreter
   def visit_assign(expr : Expr::Assign) : LiteralType
     value = evaluate(expr.value)
 
-    env.assign(expr.name, value)
+    distance = locals[expr]
+    if distance.nil?
+      globals.assign(expr.name, value)
+    else
+      env.assign_at(expr.name, value, distance)
+    end
 
     value
   end
@@ -101,7 +109,7 @@ class Crylox::Interpreter
   end
 
   def visit_function(stmt : Stmt::Function) : LiteralType
-    function = LoxFunction.new(stmt, env)
+    function = LoxFunction.new(stmt, env, @log)
     env.define(stmt.name, function)
     function
   end
@@ -188,7 +196,16 @@ class Crylox::Interpreter
   end
 
   def visit_variable(expr : Expr::Variable)
-    env.get(expr.name)
+    lookup_variable(expr.name, expr)
+  end
+
+  private def lookup_variable(name : Token, expr : Expr) : LiteralType
+    distance = locals[expr]?
+    if distance.nil?
+      globals.get(name)
+    else
+      env.get_at(name, distance)
+    end
   end
 
   def visit_binary(expr : Expr::Binary) : LiteralType
@@ -292,7 +309,7 @@ class Crylox::Interpreter
   end
 
   def visit_lambda(expr : Expr::Lambda)
-    LoxFunction.new(expr, env)
+    LoxFunction.new(expr, env, @log)
   end
 
   def visit_comment(expr : Expr::Comment)
@@ -305,8 +322,7 @@ class Crylox::Interpreter
   end
 
   private def error(message : String, token : Token) : RuntimeError
-    ex = RuntimeError.new(message, token)
-    stderr.puts ex
-    ex
+    @log.error message, token, "Crylox::Interpreter"
+    RuntimeError.new(message, token)
   end
 end

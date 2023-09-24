@@ -20,8 +20,8 @@ module Crylox::Native
       (Time.utc - Time::UNIX_EPOCH).total_seconds
     end
 
-    def to_s
-      "<native fn>"
+    def to_s(io : IO)
+      io << "<native fn>"
     end
   end
 end

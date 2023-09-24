@@ -1,4 +1,6 @@
 class Crylox::Scanner
+  class ScanError < Crylox::Exception; end
+
   Keywords = {
     "and"    => :and,
     "or"     => :or,
@@ -25,7 +27,9 @@ class Crylox::Scanner
     "lambda" => :lambda,
   } of String => TokenType
 
-  def initialize(source : String)
+  def initialize(source : String, log : Log)
+    @log = Log.new(source)
+
     @source = source
     @tokens = [] of Token
     @start = 0
@@ -107,7 +111,7 @@ class Crylox::Scanner
       elsif char.ascii_letter? || char == '_'
         identifier
       else
-        error("Unexpected character #{char.inspect}.")
+        warning("Unexpected character #{char.inspect}.")
       end
     end
   end
@@ -123,8 +127,7 @@ class Crylox::Scanner
     end
 
     if at_end?
-      error("Unterminated string.")
-      return
+      raise error("Unterminated string.")
     end
 
     advance
@@ -193,6 +196,15 @@ class Crylox::Scanner
     @tokens << Token.new(type, text, literal, @line, @col)
   end
 
-  private def error(message : String)
+  private def error(message : String) : ScanError
+    token = Token.new(:error, @source[@start...@current], "", @line, @col)
+    @log.error message, token, "Crylox::Scanner"
+    ScanError.new(message, token)
+  end
+
+  private def warning(message : String) : ScanError
+    token = Token.new(:error, @source[@start...@current], "", @line, @col)
+    @log.warning message, token, "Crylox::Scanner"
+    ScanError.new(message, token)
   end
 end
