@@ -1,118 +1,73 @@
-macro define_ast(name, types)
-  abstract class {{name}}
-    def accept(visitor : Visitor)
+# Macro for defining a module to hold AST types, utilizing the visitor architecture
+#
+# Portions copied from https://github.com/crystal-lang/crystal/blob/master/src/macros.cr#L64
+macro ast_module(name)
+  abstract class {{name.id}}
+    def accept(visitor : {{name.id}}::Visitor)
     end
   end
 
-  module {{name}}::Visitor
-    {% for type, fields in types %}
-    def visit_{{type.downcase.id}}({{name.id.downcase}} : {{name}}::{{type.id}})
-      raise "Undefined visitor method visit_{{type.downcase.id}}."
-    end
-    {% end %}
+  module {{name.id}}::Visitor
   end
+end
 
-  {% for type, fields in types %}
-  class {{name}}::{{type.id}} < {{name}}
-
-    {% for field in fields %}
-    getter {{field.id}}
-    {% end %}
-
-    def initialize(
-      {% for field in fields %}
-      @{{field.id}},
+# Macro for defining an AST type, utilizing the visitor architecture
+#
+# Portions copied from https://github.com/crystal-lang/crystal/blob/master/src/macros.cr#L64
+macro ast_type(ast_class, name, *properties)
+  class {{ast_class.id}}::{{name.id}} < {{ast_class.id}}
+    {% for property in properties %}
+      {% if property.is_a?(Assign) %}
+        getter {{property.target.id}}
+      {% elsif property.is_a?(TypeDeclaration) %}
+        getter {{property}}
+      {% else %}
+        getter :{{property.id}}
       {% end %}
-      )
+    {% end %}
+
+    def initialize({{
+                     *properties.map do |field|
+                       "@#{field.id}".id
+                     end
+                   }})
     end
 
-    def accept(visitor : Visitor)
-      visitor.visit_{{type.downcase.id}}(self)
+    def accept(visitor : {{ast_class.id}}::Visitor)
+      visitor.visit_{{name.id.downcase}}(self)
     end
   end
-  {% end %}
+
+  module {{ast_class.id}}::Visitor
+    def visit_{{name.id.downcase}}({{ast_class.id.downcase}} : {{ast_class.id}}::{{name.id}})
+      raise Crylox::Exception.new "Undefined visitor method visit_{{name.id.downcase}}.",
+        Token.new(:error, "", "", 0, 0)
+    end
+  end
 end
 
 module Crylox
-  define_ast Expr, {
-    "Assign" => [
-      "name : Token",
-      "value : Expr",
-    ],
-    "Binary" => [
-      "left : Expr",
-      "operator : Token",
-      "right : Expr",
-    ],
-    "Call" => [
-      "callee : Expr",
-      "paren : Token",
-      "arguments : Array(Expr)",
-    ],
-    "Grouping" => [
-      "expression : Expr",
-    ],
-    "Unary" => [
-      "operator : Token",
-      "right : Expr",
-    ],
-    "Literal" => [
-      "value : LiteralType",
-    ],
-    "Variable" => [
-      "name : Token",
-    ],
-    "Logical" => [
-      "left : Expr",
-      "operator : Token",
-      "right : Expr",
-    ],
-    "Comment" => [
-      "body : Token",
-    ],
-    "Lambda" => [
-      "params : Array(Token)",
-      "body : Array(Stmt)",
-    ],
-  }
+  ast_module Expr
+  ast_type Expr, Assign, name : Token, value : Expr
+  ast_type Expr, Binary, left : Expr, operator : Token, right : Expr
+  ast_type Expr, Call, callee : Expr, paren : Token, arguments : Array(Expr)
+  ast_type Expr, Comment, body : Token
+  ast_type Expr, Grouping, expression : Expr
+  ast_type Expr, Lambda, params : Array(Token), body : Array(Stmt)
+  ast_type Expr, Literal, value : LiteralType
+  ast_type Expr, Logical, left : Expr, operator : Token, right : Expr
+  ast_type Expr, Variable, name : Token
+  ast_type Expr, Unary, operator : Token, right : Expr
 
-  define_ast Stmt, {
-    "Block" => [
-      "statements : Array(Stmt)",
-    ],
-    "Expression" => [
-      "expression : Expr",
-    ],
-    "Function" => [
-      "name : Token",
-      "params : Array(Token)",
-      "body : Array(Stmt)",
-    ],
-    "If" => [
-      "condition : Expr",
-      "then_branch : Stmt",
-      "else_branch : Stmt?",
-    ],
-    "While" => [
-      "condition : Expr",
-      "body : Stmt",
-    ],
-    "Print" => [
-      "expression : Expr",
-    ],
-    "Return" => [
-      "keyword : Token",
-      "value : Expr",
-    ],
-    "Var" => [
-      "name : Token",
-      "initializer : Expr?",
-    ],
-    "Break" => [
-      "token : Token",
-    ],
-    "Next" => [
-      "token : Token",
-    ],
-  }
+  ast_module Stmt
+  ast_type Stmt, Block, statements : Array(Stmt)
+  ast_type Stmt, Break, token : Token
+  ast_type Stmt, Expression, expression : Expr
+  ast_type Stmt, Function, name : Token, params : Array(Token), body : Array(Stmt)
+  ast_type Stmt, If, condition : Expr, then_branch : Stmt, else_branch : Stmt?
+  ast_type Stmt, Next, token : Token
+  ast_type Stmt, Print, expression : Expr
+  ast_type Stmt, Return, keyword : Token, value : Expr
+  ast_type Stmt, Var, name : Token, initializer : Expr?
+  ast_type Stmt, While, condition : Expr, body : Stmt
 end
