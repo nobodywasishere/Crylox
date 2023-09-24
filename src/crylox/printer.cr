@@ -20,8 +20,24 @@ class Crylox::Printer
     end
   end
 
+  def visit_break(stmt : Stmt::Break)
+    "(break)"
+  end
+
   def visit_expression(stmt : Stmt::Expression)
     stmt.expression.accept(self)
+  end
+
+  def visit_function(stmt : Stmt::Function)
+    String.build do |str|
+      str << "(fun "
+      str << stmt.name.lexeme
+      str << " ("
+      str << stmt.params.map(&.lexeme).join(", ")
+      str << ")\n  "
+      str << stmt.body.map(&.accept(self).try &.gsub(/\n/, "\n  ")).join("\n  ")
+      str << "\n)"
+    end
   end
 
   def visit_if(stmt : Stmt::If)
@@ -38,18 +54,8 @@ class Crylox::Printer
     end
   end
 
-  def visit_while(stmt : Stmt::While)
-    String.build do |str|
-      str << "(while ("
-      str << stmt.condition.accept(self)
-      str << ")\n  "
-      str << stmt.body.accept(self).try &.gsub(/\n/, "\n  ")
-      str << "\n)"
-    end
-  end
-
-  def visit_break(stmt : Stmt::Break)
-    "(break)"
+  def visit_next(stmt : Stmt::Next)
+    "(next)"
   end
 
   def visit_print(stmt : Stmt::Print)
@@ -68,14 +74,12 @@ class Crylox::Printer
     end
   end
 
-  def visit_function(stmt : Stmt::Function)
+  def visit_while(stmt : Stmt::While)
     String.build do |str|
-      str << "(fun "
-      str << stmt.name.lexeme
-      str << " ("
-      str << stmt.params.map(&.lexeme).join(", ")
+      str << "(while ("
+      str << stmt.condition.accept(self)
       str << ")\n  "
-      str << stmt.body.map(&.accept(self).try &.gsub(/\n/, "\n  ")).join("\n  ")
+      str << stmt.body.accept(self).try &.gsub(/\n/, "\n  ")
       str << "\n)"
     end
   end
@@ -100,8 +104,22 @@ class Crylox::Printer
     end
   end
 
+  def visit_comment(expr : Expr::Comment)
+    "(#{expr.body.lexeme})"
+  end
+
   def visit_grouping(expr : Expr::Grouping)
     parenthesize("group", expr.expression)
+  end
+
+  def visit_lambda(expr : Expr::Lambda)
+    String.build do |str|
+      str << "(lambda ("
+      str << expr.params.map(&.lexeme).join(", ")
+      str << ")\n  "
+      str << expr.body.map(&.accept(self).try &.gsub(/\n/, "\n  ")).join("\n  ")
+      str << "\n)"
+    end
   end
 
   def visit_literal(expr : Expr::Literal)
@@ -119,10 +137,6 @@ class Crylox::Printer
 
   def visit_variable(expr : Expr::Variable)
     "(= #{expr.name.lexeme})"
-  end
-
-  def visit_comment(expr : Expr::Comment)
-    "(#{expr.body.lexeme})"
   end
 
   # Helper methods
