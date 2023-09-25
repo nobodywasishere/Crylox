@@ -9,6 +9,8 @@ class Crylox::CLI
       run_file(args[1])
     when "ast"
       run_prompt(true)
+    when "to_crystal"
+      transpile_crystal(File.read(args[1]))
     else
       puts "Usage: crylox [cmd] [script]"
       exit 64
@@ -66,6 +68,20 @@ class Crylox::CLI
     statements = parser.parse
 
     puts Crylox::Printer.print(statements)
+  end
+
+  private def transpile_crystal(source : String)
+    log = Log.new(source)
+
+    scanner = Scanner.new(source, log)
+    tokens = scanner.scan_tokens
+
+    parser = Parser.new(tokens, log)
+    statements = parser.parse
+
+    transpiler = CrystalTranspiler.new
+
+    puts transpiler.transpile(statements)
   end
 end
 
