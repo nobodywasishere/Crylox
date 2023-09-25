@@ -23,6 +23,7 @@ class Crylox::Parser
     return return_stmt if match(TokenType::RETURN)
     return while_stmt if match(TokenType::WHILE)
     return break_stmt if match(TokenType::BREAK)
+    return next_stmt if match(TokenType::NEXT)
     return Stmt::Block.new(block_stmt) if match(TokenType::LEFT_BRACE)
     expression_stmt
   end

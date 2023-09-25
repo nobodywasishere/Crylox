@@ -126,7 +126,7 @@ class Crylox::Interpreter
     while evaluate(stmt.condition)
       begin
         execute(stmt.body)
-      rescue BreakStmt
+      rescue BreakStmt | NextStmt
         break
       end
     end

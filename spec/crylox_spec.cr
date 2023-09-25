@@ -34,6 +34,54 @@ describe Crylox do
     res.stdout.should eq("26.0\n")
   end
 
+  it "has break" do
+    res = Crylox.execute {
+      <<-LOX
+      for (var i = 0; i < 5; i += 1) {
+        print i;
+        break;
+      }
+      LOX
+    }
+
+    res.result.should eq(nil)
+    res.stdout.should eq("0.0\n")
+    res.stderr.should eq("")
+  end
+
+  it "has next" do
+    res = Crylox.execute {
+      <<-LOX
+      for (var i = 0; i < 5; i += 1) {
+        next;
+        print i;
+      }
+      LOX
+    }
+
+    res.result.should eq(nil)
+    res.stdout.should eq("")
+    res.stderr.should eq("")
+  end
+
+  it "has return in functions" do
+    res = Crylox.execute {
+      <<-LOX
+      fun abc() {
+        return ->(){ return; print 1; };
+
+        print 1;
+      }
+
+      abc()();
+      LOX
+    }
+
+    res.result.should eq(nil)
+    res.stdout.should eq("")
+    res.stderr.should eq("")
+  end
+
   it "allows defining methods" do
     res = Crylox.execute {
       <<-LOX

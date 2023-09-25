@@ -47,11 +47,17 @@ class Crylox::CLI
     scanner = Scanner.new(source, log)
     tokens = scanner.scan_tokens
 
+    return {nil, true} if log.had_error?
+
     parser = Parser.new(tokens, log)
     statements = parser.parse
 
+    return {nil, true} if log.had_error?
+
     resolver = Resolver.new(@interpreter.as(Interpreter), log)
     resolver.resolve(statements)
+
+    return {nil, true} if log.had_error?
 
     {@interpreter.as(Interpreter).interpret(log, statements), log.had_error?}
   end
@@ -62,8 +68,12 @@ class Crylox::CLI
     scanner = Scanner.new(source, log)
     tokens = scanner.scan_tokens
 
+    return if log.had_error?
+
     parser = Parser.new(tokens, log)
     statements = parser.parse
+
+    return if log.had_error?
 
     puts Crylox::Printer.print(statements)
   end

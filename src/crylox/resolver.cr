@@ -7,11 +7,13 @@ class Crylox::Resolver
   enum FunctionType
     None
     Function
+    Loop
   end
 
   getter interpreter : Interpreter
   getter scopes : Array(Hash(String, Bool)) = [{} of String => Bool]
-  property current_function : FunctionType = :none
+  property current_function : FunctionType = FunctionType::None
+  property current_loop : FunctionType = FunctionType::None
 
   def initialize(@interpreter, @log : Crylox::Log)
   end
@@ -31,6 +33,9 @@ class Crylox::Resolver
   end
 
   def visit_break(stmt) : Nil
+    unless @current_loop == FunctionType::Loop
+      raise error("Cannot call break outside a loop.", stmt.token)
+    end
   end
 
   def visit_expression(stmt : Stmt::Expression) : Nil
@@ -50,6 +55,9 @@ class Crylox::Resolver
   end
 
   def visit_next(stmt) : Nil
+    unless @current_loop == FunctionType::Loop
+      raise error("Cannot call next outside a loop.", stmt.token)
+    end
   end
 
   def visit_print(stmt : Stmt::Print) : Nil
@@ -57,7 +65,7 @@ class Crylox::Resolver
   end
 
   def visit_return(stmt : Stmt::Return) : Nil
-    if current_function == :none
+    unless @current_function == FunctionType::Function
       raise error("Cannot return from top-level code.", stmt.keyword)
     end
 
@@ -73,8 +81,7 @@ class Crylox::Resolver
   end
 
   def visit_while(stmt : Stmt::While) : Nil
-    resolve stmt.condition
-    resolve stmt.body
+    resolve_loop stmt, FunctionType::Loop
   end
 
   # Exprs
@@ -154,12 +161,8 @@ class Crylox::Resolver
     scopes.last[name.lexeme] = true
   end
 
-  private def resolve(stmt : Stmt) : Nil
+  private def resolve(stmt : Stmt | Expr) : Nil
     stmt.accept(self)
-  end
-
-  private def resolve(expr : Expr) : Nil
-    expr.accept(self)
   end
 
   private def resolve_local(expr : Expr, name : Token)
@@ -172,8 +175,8 @@ class Crylox::Resolver
   end
 
   private def resolve_function(function : Stmt::Function | Expr::Lambda, type : FunctionType)
-    enclosing_function = current_function
-    current_function = type
+    enclosing_function = @current_function
+    @current_function = type
 
     begin_scope
     function.params.each do |param|
@@ -183,7 +186,17 @@ class Crylox::Resolver
     resolve function.body
     end_scope
 
-    current_function = enclosing_function
+    @current_function = enclosing_function
+  end
+
+  private def resolve_loop(stmt : Stmt::While, type : FunctionType)
+    enclosing_loop = @current_loop
+    @current_loop = type
+
+    resolve stmt.condition
+    resolve stmt.body
+
+    @current_loop = enclosing_loop
   end
 
   private def error(message : String, token : Token)
