@@ -43,6 +43,7 @@ class Crylox::CLI
     log ||= Crylox::Log.new(source)
 
     @interpreter ||= Interpreter.new(log)
+    @type_inference ||= TypeInference.new(log)
 
     scanner = Scanner.new(source, log)
     tokens = scanner.scan_tokens
@@ -51,6 +52,10 @@ class Crylox::CLI
 
     parser = Parser.new(tokens, log)
     statements = parser.parse
+
+    return {nil, true} if log.had_error?
+
+    @type_inference.as(TypeInference).infer(log, statements)
 
     return {nil, true} if log.had_error?
 

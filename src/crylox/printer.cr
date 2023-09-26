@@ -33,7 +33,7 @@ class Crylox::Printer
       str << "(fun "
       str << stmt.name.lexeme
       str << " ("
-      str << stmt.params.map(&.lexeme).join(", ")
+      str << stmt.params.map { |n, t| n.lexeme + " " + t.to_s }.join(", ")
       str << ")\n  "
       str << stmt.body.map(&.accept(self).try &.gsub(/\n/, "\n  ")).join("\n  ")
       str << "\n)"
@@ -67,10 +67,20 @@ class Crylox::Printer
   end
 
   def visit_var(stmt : Stmt::Var)
-    if (init = stmt.initializer).nil?
-      "(var #{stmt.name.lexeme} nil)"
-    else
-      parenthesize("var #{stmt.name.lexeme}", init)
+    String.build do |str|
+      str << "(var "
+      str << stmt.name.lexeme
+      unless (type = stmt.lox_type).nil?
+        str << " "
+        str << type.to_s
+      end
+      if (init = stmt.initializer).nil?
+        str << " nil"
+      else
+        str << " "
+        str << init.accept(self)
+      end
+      str << ")"
     end
   end
 
@@ -115,7 +125,9 @@ class Crylox::Printer
   def visit_lambda(expr : Expr::Lambda)
     String.build do |str|
       str << "(lambda ("
-      str << expr.params.map(&.lexeme).join(", ")
+      str << expr.params.map { |n, t|
+        n.lexeme + (t.nil? ? "" : " " + t.to_s)
+      }.join(", ")
       str << ")\n  "
       str << expr.body.map(&.accept(self).try &.gsub(/\n/, "\n  ")).join("\n  ")
       str << "\n)"

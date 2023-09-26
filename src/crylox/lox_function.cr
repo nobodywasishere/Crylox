@@ -7,14 +7,14 @@ class Crylox::LoxFunction
   def initialize(@declaration, @closure, @log : Crylox::Log)
   end
 
-  def arity
+  def arity : Int32
     declaration.params.size
   end
 
   def call(interpreter : Interpreter, arguments : Array(LiteralType)) : LiteralType
     env = Environment.new(@log, closure)
 
-    declaration.params.each_with_index do |param, idx|
+    declaration.params.keys.each_with_index do |param, idx|
       env.define(param, arguments[idx])
     end
 

@@ -88,6 +88,8 @@ class Crylox::Scanner
       match('=') ? add_token(:less_equal) : add_token(:less)
     when '>'
       match('=') ? add_token(:greater_equal) : add_token(:greater)
+    when ':'
+      add_token(:type)
     when ' ', '\r', '\t'
     when '\n'
       @line += 1

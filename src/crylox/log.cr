@@ -36,7 +36,7 @@ class Crylox::Log
   end
 
   private def log(io : IO, message : String, token : Token, level : Level, for_obj = "")
-    str = String.build do |str|
+    string = String.build do |str|
       unless @source.nil?
         @source = @source.as(String)
 
@@ -54,6 +54,6 @@ class Crylox::Log
       str << " #{level}: #{message}"
     end
 
-    io.puts str
+    io.puts string
   end
 end

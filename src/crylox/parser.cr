@@ -43,7 +43,7 @@ class Crylox::Parser
   end
 
   private def for_stmt : Stmt::Block | Stmt::While
-    consume(TokenType::LEFT_PAREN, "Expect '(' after 'for'.")
+    left_paren = consume(TokenType::LEFT_PAREN, "Expect '(' after 'for'.")
 
     initializer : Stmt? = nil
     if match(TokenType::SEMICOLON)
@@ -75,7 +75,7 @@ class Crylox::Parser
     if condition.nil?
       condition = Expr::Literal.new(true)
     end
-    body = Stmt::While.new(condition, body)
+    body = Stmt::While.new(condition, body, left_paren)
 
     unless initializer.nil?
       body = Stmt::Block.new([initializer, body])
@@ -85,14 +85,14 @@ class Crylox::Parser
   end
 
   private def if_stmt : Stmt::If
-    consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.")
+    left_paren = consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.")
     condition = expression
     consume(TokenType::RIGHT_PAREN, "Expect ')' after if condition.")
 
     then_branch = statement
     else_branch = match(TokenType::ELSE) ? statement : nil
 
-    Stmt::If.new(condition, then_branch, else_branch)
+    Stmt::If.new(condition, then_branch, else_branch, left_paren)
   end
 
   private def print_stmt : Stmt::Print
@@ -114,13 +114,13 @@ class Crylox::Parser
   end
 
   private def while_stmt : Stmt::While
-    consume(TokenType::LEFT_PAREN, "Expect '(' after 'while'.")
+    left_paren = consume(TokenType::LEFT_PAREN, "Expect '(' after 'while'.")
     condition = expression
     consume(TokenType::RIGHT_PAREN, "Expect ')' after while condition.")
 
     body = statement
 
-    Stmt::While.new(condition, body)
+    Stmt::While.new(condition, body, left_paren)
   end
 
   private def break_stmt : Stmt::Break
@@ -137,6 +137,12 @@ class Crylox::Parser
 
   private def var_declaration : Stmt::Var
     name = consume(TokenType::IDENTIFIER, "Expect variable name.")
+    lox_type = LoxVariableType::Nil
+
+    if match(TokenType::TYPE)
+      lox_type = validate_type(consume(TokenType::IDENTIFIER, "Expected type after ':'."))
+    end
+
     initializer = nil
 
     if match(TokenType::EQUAL)
@@ -147,7 +153,7 @@ class Crylox::Parser
 
     consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.")
 
-    Stmt::Var.new(name, initializer)
+    Stmt::Var.new(name, initializer, lox_type)
   end
 
   private def expression_stmt : Stmt::Expression
@@ -162,13 +168,28 @@ class Crylox::Parser
     name = consume(TokenType::IDENTIFIER, "Expect #{kind} name.")
 
     consume(TokenType::LEFT_PAREN, "Expect '(' after #{kind} name")
-    parameters = [] of Token
+    parameters = {} of Token => LoxVariableType
 
     unless check(TokenType::RIGHT_PAREN)
-      parameters << consume(TokenType::IDENTIFIER, "Expect parameter name.")
+      token = consume(TokenType::IDENTIFIER, "Expect parameter name.")
+      parameters.merge!({token => LoxVariableType::Nil})
+      if match(TokenType::TYPE)
+        lox_type = consume(TokenType::IDENTIFIER, "Expected parameter type.")
+        parameters[token] = validate_type(lox_type)
+      else
+        parameters[token] = LoxVariableType::Nil
+      end
+
       while match(TokenType::COMMA)
         error("Cannot have more than 255 parameters.", peek) if parameters.size >= 255
-        parameters << consume(TokenType::IDENTIFIER, "Expect parameter name.")
+        token = consume(TokenType::IDENTIFIER, "Expect parameter name.")
+        parameters.merge!({token => LoxVariableType::Nil})
+        if match(TokenType::TYPE)
+          lox_type = consume(TokenType::IDENTIFIER, "Expected parameter type.")
+          parameters[token] = validate_type(lox_type)
+        else
+          parameters[token] = LoxVariableType::Nil
+        end
       end
     end
     consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters.")
@@ -323,13 +344,28 @@ class Crylox::Parser
   private def lambda : Expr
     if match(TokenType::LAMBDA, TokenType::MINUS_GREATER)
       consume(TokenType::LEFT_PAREN, "Expect '(' after lambda")
-      parameters = [] of Token
+      parameters = {} of Token => LoxVariableType
 
       unless check(TokenType::RIGHT_PAREN)
-        parameters << consume(TokenType::IDENTIFIER, "Expect parameter name.")
+        token = consume(TokenType::IDENTIFIER, "Expect parameter name.")
+        parameters.merge!({token => LoxVariableType::Nil})
+        if match(TokenType::TYPE)
+          lox_type = consume(TokenType::IDENTIFIER, "Expected parameter type.")
+          parameters[token] = validate_type(lox_type)
+        else
+          parameters[token] = LoxVariableType::Nil
+        end
+
         while match(TokenType::COMMA)
           error("Cannot have more than 255 parameters.", peek) if parameters.size >= 255
-          parameters << consume(TokenType::IDENTIFIER, "Expect parameter name.")
+          token = consume(TokenType::IDENTIFIER, "Expect parameter name.")
+          parameters.merge!({token => LoxVariableType::Nil})
+          if match(TokenType::TYPE)
+            lox_type = consume(TokenType::IDENTIFIER, "Expected parameter type.")
+            parameters[token] = validate_type(lox_type)
+          else
+            parameters[token] = LoxVariableType::Nil
+          end
         end
       end
       consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters.")
@@ -378,6 +414,12 @@ class Crylox::Parser
   end
 
   # Helper methods
+
+  private def validate_type(type : Token) : LoxVariableType
+    LoxVariableType.parse(type.lexeme)
+  rescue ArgumentError
+    raise error("Unknown variable type.", type)
+  end
 
   private def match(*types : TokenType) : Bool
     types.each do |type|

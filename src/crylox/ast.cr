@@ -63,7 +63,7 @@ module Crylox
     ast_type Call, callee : Expr, paren : Token, arguments : Array(Expr)
     ast_type Comment, body : Token
     ast_type Grouping, expression : Expr
-    ast_type Lambda, params : Array(Token), body : Array(Stmt)
+    ast_type Lambda, params : Hash(Token, LoxVariableType), body : Array(Stmt)
     ast_type Literal, value : LiteralType
     ast_type Logical, left : Expr, operator : Token, right : Expr
     ast_type Variable, name : Token
@@ -74,12 +74,12 @@ module Crylox
     ast_type Block, statements : Array(Stmt)
     ast_type Break, token : Token
     ast_type Expression, expression : Expr
-    ast_type Function, name : Token, params : Array(Token), body : Array(Stmt)
-    ast_type If, condition : Expr, then_branch : Stmt, else_branch : Stmt?
+    ast_type Function, name : Token, params : Hash(Token, LoxVariableType), body : Array(Stmt)
+    ast_type If, condition : Expr, then_branch : Stmt, else_branch : Stmt?, left_paren : Token
     ast_type Next, token : Token
     ast_type Print, expression : Expr
     ast_type Return, keyword : Token, value : Expr
-    ast_type Var, name : Token, initializer : Expr?
-    ast_type While, condition : Expr, body : Stmt
+    ast_type Var, name : Token, initializer : Expr?, lox_type : LoxVariableType
+    ast_type While, condition : Expr, body : Stmt, left_paren : Token
   end
 end

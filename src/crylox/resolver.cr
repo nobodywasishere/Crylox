@@ -179,7 +179,7 @@ class Crylox::Resolver
     @current_function = type
 
     begin_scope
-    function.params.each do |param|
+    function.params.keys.each do |param|
       declare param
       define param
     end

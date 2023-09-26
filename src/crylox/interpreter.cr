@@ -27,6 +27,7 @@ class Crylox::Interpreter
     @locals = {} of Expr => Int32
 
     define_native("clock", Crylox::Native::Clock.new)
+    define_native("typeof", Crylox::Native::TypeOf.new)
   end
 
   def define_native(name : String, method : LoxCallable)
@@ -94,7 +95,7 @@ class Crylox::Interpreter
   def visit_assign(expr : Expr::Assign) : LiteralType
     value = evaluate(expr.value)
 
-    distance = locals[expr]
+    distance = locals[expr]?
     if distance.nil?
       globals.assign(expr.name, value)
     else
@@ -318,7 +319,7 @@ class Crylox::Interpreter
   # Helper methods
 
   private def stringify(literal : LiteralType) : String
-    literal.inspect
+    literal.is_a?(String) ? literal.inspect.to_s : literal.to_s
   end
 
   private def error(message : String, token : Token) : RuntimeError
