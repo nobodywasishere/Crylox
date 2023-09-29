@@ -35,11 +35,26 @@ class Crylox::Parser
   # Statement parsers
 
   private def declaration_stmt : Stmt?
+    return class_declaration if match(TokenType::CLASS)
     return function_stmt("function") if match(TokenType::FUN)
     return var_declaration if match(TokenType::VAR)
     statement
   rescue ex : ParseError
     synchronize
+  end
+
+  def class_declaration : Stmt::Class
+    name = consume(TokenType::IDENTIFIER, "Expected class name.")
+    consume(TokenType::LEFT_BRACE, "Expected '{' before class body.")
+
+    methods = [] of Stmt::Function
+    until check(TokenType::RIGHT_BRACE) || at_end?
+      methods << function_stmt("method")
+    end
+
+    consume(TokenType::RIGHT_BRACE, "Expect '}' after class body.")
+
+    Stmt::Class.new(name, methods)
   end
 
   private def for_stmt : Stmt::Block | Stmt::While
@@ -207,6 +222,8 @@ class Crylox::Parser
 
       if expr.is_a? Expr::Variable
         return Expr::Assign.new(expr.name, value)
+      elsif expr.is_a? Expr::Get
+        return Expr::Set.new(expr.object, expr.name, value)
       end
 
       raise error("Invalid assignment target.", equals)
@@ -312,6 +329,9 @@ class Crylox::Parser
     loop do
       if match(TokenType::LEFT_PAREN)
         expr = finish_call(expr)
+      elsif match(TokenType::DOT)
+        name = consume(TokenType::IDENTIFIER, "Expect property name after '.'.")
+        expr = Expr::Get.new(expr, name)
       else
         break
       end

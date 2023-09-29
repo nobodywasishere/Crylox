@@ -1,7 +1,7 @@
 module Crylox
   VERSION = "0.1.0"
 
-  alias LiteralType = String | Float64 | Bool | Nil | LoxCallable
+  alias LiteralType = String | Float64 | Bool | Nil | LoxCallable | LoxInstance
 
   record ExecResult, result : LiteralType, stdout : String, stderr : String
 
@@ -44,5 +44,7 @@ require "./crylox/parser"
 require "./crylox/resolver"
 require "./crylox/environment"
 require "./crylox/lox_callable"
+require "./crylox/lox_class"
 require "./crylox/lox_function"
+require "./crylox/lox_instance"
 require "./crylox/interpreter"

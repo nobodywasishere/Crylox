@@ -7,6 +7,7 @@ class Crylox::Resolver
   enum FunctionType
     None
     Function
+    Method
     Loop
   end
 
@@ -32,9 +33,18 @@ class Crylox::Resolver
     end_scope
   end
 
-  def visit_break(stmt) : Nil
+  def visit_break(stmt : Stmt::Break) : Nil
     unless @current_loop == FunctionType::Loop
       raise error("Cannot call break outside a loop.", stmt.token)
+    end
+  end
+
+  def visit_class(stmt : Stmt::Class) : Nil
+    declare(stmt.name)
+    define(stmt.name)
+
+    stmt.methods.each do |method|
+      resolve_function(method, FunctionType::Method)
     end
   end
 
@@ -107,6 +117,10 @@ class Crylox::Resolver
   def visit_comment(expr : Expr::Comment) : Nil
   end
 
+  def visit_get(expr : Expr::Get) : Nil
+    resolve(expr.object)
+  end
+
   def visit_grouping(expr : Expr::Grouping) : Nil
     resolve expr.expression
   end
@@ -121,6 +135,11 @@ class Crylox::Resolver
   def visit_logical(expr : Expr::Logical) : Nil
     resolve expr.left
     resolve expr.right
+  end
+
+  def visit_set(expr : Expr::Set) : Nil
+    resolve(expr.value)
+    resolve(expr.object)
   end
 
   def visit_unary(expr : Expr::Unary) : Nil

@@ -24,19 +24,34 @@ class Crylox::Printer
     "(break)"
   end
 
+  def visit_class(stmt : Stmt::Class)
+    String.build do |str|
+      str << "(class #{stmt.name.lexeme}"
+      stmt.methods.each do |method|
+        str << "\n  "
+        str << method.accept(self).gsub("\n", "\n  ")
+      end
+      str << "\n" unless stmt.methods.empty?
+      str << ")"
+    end
+  end
+
   def visit_expression(stmt : Stmt::Expression)
     stmt.expression.accept(self)
   end
 
   def visit_function(stmt : Stmt::Function)
     String.build do |str|
-      str << "(fun "
-      str << stmt.name.lexeme
+      str << "(fun #{stmt.name.lexeme}"
       str << " ("
       str << stmt.params.map(&.lexeme).join(", ")
-      str << ")\n  "
-      str << stmt.body.map(&.accept(self).try &.gsub(/\n/, "\n  ")).join("\n  ")
-      str << "\n)"
+      str << ")"
+      stmt.body.each do |s|
+        str << "\n  "
+        str << s.accept(self).try &.gsub("\n", "\n  ")
+      end
+      str << "\n" unless stmt.body.empty?
+      str << ")"
     end
   end
 
@@ -108,6 +123,10 @@ class Crylox::Printer
     "(#{expr.body.lexeme})"
   end
 
+  def visit_get(expr : Expr::Get)
+    parenthesize("get #{expr.name.lexeme}", expr.object)
+  end
+
   def visit_grouping(expr : Expr::Grouping)
     parenthesize("group", expr.expression)
   end
@@ -116,9 +135,13 @@ class Crylox::Printer
     String.build do |str|
       str << "(lambda ("
       str << expr.params.map(&.lexeme).join(", ")
-      str << ")\n  "
-      str << expr.body.map(&.accept(self).try &.gsub(/\n/, "\n  ")).join("\n  ")
-      str << "\n)"
+      str << ")"
+      expr.body.each do |e|
+        str << "\n  "
+        str << e.accept(self).try &.gsub(/\n/, "\n  ")
+      end
+      str << "\n" unless expr.body.empty?
+      str << ")"
     end
   end
 
@@ -129,6 +152,10 @@ class Crylox::Printer
 
   def visit_logical(expr : Expr::Logical)
     parenthesize(expr.operator.lexeme, expr.left, expr.right)
+  end
+
+  def visit_set(expr : Expr::Set)
+    parenthesize("= expr.name", expr.object, expr.value)
   end
 
   def visit_unary(expr : Expr::Unary)

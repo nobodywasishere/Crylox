@@ -148,6 +148,19 @@ class Crylox::Interpreter
     stdout.puts stringify(evaluate(stmt.expression))
   end
 
+  def visit_class(stmt : Stmt::Class) : Nil
+    env.define(stmt.name, nil)
+
+    methods = {} of String => LoxFunction
+    stmt.methods.each do |method|
+      function = LoxFunction.new(method, env, @log)
+      methods[method.name.lexeme] = function
+    end
+
+    klass = LoxClass.new(stmt.name.lexeme, methods)
+    env.assign(stmt.name, klass)
+  end
+
   # Expressions
 
   def visit_literal(expr : Expr::Literal) : LiteralType
@@ -315,10 +328,34 @@ class Crylox::Interpreter
   def visit_comment(expr : Expr::Comment)
   end
 
+  def visit_get(expr : Expr::Get)
+    obj = evaluate(expr.object)
+    if obj.is_a? LoxInstance
+      return obj.get(expr.name)
+    end
+
+    raise error("Only instances have properties.", expr.name)
+  end
+
+  def visit_set(expr : Expr::Set)
+    obj = evaluate(expr.object)
+
+    unless obj.is_a? LoxInstance
+      raise error("Only instances have fields.", expr.name)
+    end
+
+    value = evaluate(expr.value)
+    obj.set(expr.name, value)
+  end
+
   # Helper methods
 
   private def stringify(literal : LiteralType) : String
-    literal.inspect
+    if literal.is_a? String
+      literal.inspect
+    else
+      literal.to_s
+    end
   end
 
   private def error(message : String, token : Token) : RuntimeError

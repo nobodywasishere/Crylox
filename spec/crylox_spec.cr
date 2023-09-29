@@ -171,4 +171,22 @@ describe Crylox do
     res.stderr.should eq("")
     res.stdout.should eq("\"global\"\n\"global\"\n")
   end
+
+  it "has basic classes" do
+    res = Crylox.execute {
+      <<-LOX
+      class Bacon {
+        eat() {
+          print "tempeh bacon is good";
+        }
+      }
+
+      Bacon().eat();
+      LOX
+    }
+
+    res.result.should eq(nil)
+    res.stderr.should eq("")
+    res.stdout.should eq("\"tempeh bacon is good\"\n")
+  end
 end
