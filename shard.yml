@@ -4,10 +4,15 @@ version: 0.1.0
 authors:
   - Margret Riegert <margret@eowyn.net>
 
+development_dependencies:
+  ameba:
+    github: crystal-ameba/ameba
+    version: ~> 1.4
+
 targets:
   crylox:
-    main: src/Crylox.cr
+    main: src/crylox/cli.cr
 
-crystal: 1.6.2
+crystal: ~> 1.9
 
 license: MIT

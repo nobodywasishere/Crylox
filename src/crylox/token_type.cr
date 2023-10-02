@@ -27,6 +27,7 @@ module Crylox
     IDENTIFIER
     STRING
     NUMBER
+    COMMENT
 
     # Keywords
     AND
@@ -46,6 +47,24 @@ module Crylox
     VAR
     WHILE
 
+    # Add-on keywords
+    NAND
+    NOR
+    XOR
+    XNOR
+    BREAK
+    NEXT
+    MODULUS
+    LAMBDA
+    MINUS_GREATER # ->
+
+    PLUS_EQUAL
+    MINUS_EQUAL
+    SLASH_EQUAL
+    STAR_EQUAL
+    MOD_EQUAL
+
+    ERROR
     EOF
   end
 end
