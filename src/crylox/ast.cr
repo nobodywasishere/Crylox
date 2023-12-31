@@ -17,7 +17,7 @@ module Crylox
     {% if block.is_a?(Block) %}
     {% for node in block.body.expressions %}
     {% if node.is_a?(Call) && node.name == "ast_type" %}
-    {{ node.name }}({{ name.id }}, {{ *node.args }})
+    {{ node.name }}({{ name.id }}, {{ node.args.splat }})
     {% end %}
     {% end %}
     {% end %}
@@ -68,6 +68,8 @@ module Crylox
     ast_type Literal, value : LiteralType
     ast_type Logical, left : Expr, operator : Token, right : Expr
     ast_type Set, object : Expr, name : Token, value : Expr
+    ast_type Super, keyword : Token, method : Token
+    ast_type This, keyword : Token
     ast_type Variable, name : Token
     ast_type Unary, operator : Token, right : Expr
   end
@@ -75,7 +77,7 @@ module Crylox
   ast_module Stmt do
     ast_type Block, statements : Array(Stmt)
     ast_type Break, token : Token
-    ast_type Class, name : Token, methods : Array(Function)
+    ast_type Class, name : Token, superclass : Expr::Variable?, methods : Array(Function)
     ast_type Expression, expression : Expr
     ast_type Function, name : Token, params : Array(Token), body : Array(Stmt)
     ast_type If, condition : Expr, then_branch : Stmt, else_branch : Stmt?

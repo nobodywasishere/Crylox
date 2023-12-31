@@ -158,6 +158,14 @@ class Crylox::Printer
     parenthesize("= expr.name", expr.object, expr.value)
   end
 
+  def visit_super(expr : Expr::Super)
+    "(super)"
+  end
+
+  def visit_this(expr : Expr::This)
+    "(this)"
+  end
+
   def visit_unary(expr : Expr::Unary)
     parenthesize(expr.operator.lexeme, expr.right)
   end

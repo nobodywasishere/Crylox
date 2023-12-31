@@ -44,6 +44,11 @@ class Crylox::Parser
   end
 
   def class_declaration : Stmt::Class
+    if match(TokenType::LESS)
+      consume(TokenType::IDENTIFIER, "Expect superclass name.")
+      superclass = Expr::Variable.new(previous)
+    end
+
     name = consume(TokenType::IDENTIFIER, "Expected class name.")
     consume(TokenType::LEFT_BRACE, "Expected '{' before class body.")
 
@@ -54,7 +59,7 @@ class Crylox::Parser
 
     consume(TokenType::RIGHT_BRACE, "Expect '}' after class body.")
 
-    Stmt::Class.new(name, methods)
+    Stmt::Class.new(name, superclass, methods)
   end
 
   private def for_stmt : Stmt::Block | Stmt::While
@@ -387,6 +392,15 @@ class Crylox::Parser
 
     return Expr::Variable.new(previous) if match(TokenType::IDENTIFIER)
     return Expr::Comment.new(previous) if match(TokenType::COMMENT)
+
+    if match(TokenType::SUPER)
+      keyword = previous
+      consume(TokenType::DOT, "Expect '.' after 'super'.")
+      method = consume(TokenType::IDENTIFIER, "Expect superclass method name.")
+      return Expr::Super.new(keyword, method)
+    end
+
+    return Expr::This.new(previous) if match(TokenType::THIS)
 
     if match(TokenType::LEFT_PAREN)
       expr = expression

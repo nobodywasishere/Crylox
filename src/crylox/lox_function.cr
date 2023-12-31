@@ -3,8 +3,9 @@ class Crylox::LoxFunction
 
   getter declaration : Stmt::Function | Expr::Lambda
   getter closure : Environment?
+  getter? initializer : Bool
 
-  def initialize(@declaration, @closure, @log : Crylox::Log)
+  def initialize(@declaration, @closure, @initializer, @log : Crylox::Log)
   end
 
   def arity
@@ -18,9 +19,13 @@ class Crylox::LoxFunction
       env.define(param, arguments[idx])
     end
 
-    interpreter.execute_block(declaration.body, env)
+    value = interpreter.execute_block(declaration.body, env)
   rescue return_stmt : Interpreter::ReturnStmt
-    return_stmt.value
+    if initializer?
+      closure.try &.get_at(Token.new(:this, "this", "this", 0, 0), 0)
+    else
+      return_stmt.value
+    end
   end
 
   def to_s(io : IO)
@@ -29,5 +34,11 @@ class Crylox::LoxFunction
     else
       io << "<fn lambda>"
     end
+  end
+
+  def bind(instance : LoxInstance)
+    env = Environment.new(@log, closure)
+    env.define(Token.new(:this, "this", "this", 0, 0), instance)
+    LoxFunction.new(declaration, env, initializer?, @log)
   end
 end

@@ -14,8 +14,8 @@ class Crylox::LoxInstance
       return value
     end
 
-    if (method = klass.methods[name.lexeme]?)
-      return method
+    if (method = klass.find_method(name.lexeme))
+      return method.bind(self)
     end
 
     raise Interpreter::RuntimeError.new("Undefined property '#{name.lexeme}'.", name)

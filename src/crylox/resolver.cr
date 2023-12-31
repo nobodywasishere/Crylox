@@ -7,14 +7,21 @@ class Crylox::Resolver
   enum FunctionType
     None
     Function
+    Initializer
     Method
     Loop
+  end
+
+  enum ClassType
+    None
+    Class
   end
 
   getter interpreter : Interpreter
   getter scopes : Array(Hash(String, Bool)) = [{} of String => Bool]
   property current_function : FunctionType = FunctionType::None
   property current_loop : FunctionType = FunctionType::None
+  property current_class : ClassType = ClassType::None
 
   def initialize(@interpreter, @log : Crylox::Log)
   end
@@ -40,12 +47,26 @@ class Crylox::Resolver
   end
 
   def visit_class(stmt : Stmt::Class) : Nil
+    enclosing_class = @current_class
+    @current_class = ClassType::Class
+
     declare(stmt.name)
     define(stmt.name)
 
+    begin_scope
+    scopes.last["this"] = true
+
     stmt.methods.each do |method|
       resolve_function(method, FunctionType::Method)
+
+      if method.name.lexeme == "init"
+        declaration = FunctionType::Initializer
+      end
     end
+
+    end_scope
+
+    @current_class = enclosing_class
   end
 
   def visit_expression(stmt : Stmt::Expression) : Nil
@@ -140,6 +161,18 @@ class Crylox::Resolver
   def visit_set(expr : Expr::Set) : Nil
     resolve(expr.value)
     resolve(expr.object)
+  end
+
+  def visit_super(expr : Expr::Super)
+  end
+
+  def visit_this(expr : Expr::This) : Nil
+    if (@current_class == ClassType::None)
+      error("Can't use 'this' outside of a class.", expr.keyword)
+      return nil
+    end
+
+    resolve_local(expr, expr.keyword)
   end
 
   def visit_unary(expr : Expr::Unary) : Nil

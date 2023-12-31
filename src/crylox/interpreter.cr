@@ -109,7 +109,7 @@ class Crylox::Interpreter
   end
 
   def visit_function(stmt : Stmt::Function) : LiteralType
-    function = LoxFunction.new(stmt, env, @log)
+    function = LoxFunction.new(stmt, env, false, @log)
     env.define(stmt.name, function)
     function
   end
@@ -149,15 +149,22 @@ class Crylox::Interpreter
   end
 
   def visit_class(stmt : Stmt::Class) : Nil
+    unless (klass = stmt.superclass).nil?
+      superclass = evaluate(klass)
+      unless superclass.is_a? LoxClass
+        raise RuntimeError.new("Superclass must be a class.", klass.name)
+      end
+    end
+
     env.define(stmt.name, nil)
 
     methods = {} of String => LoxFunction
     stmt.methods.each do |method|
-      function = LoxFunction.new(method, env, @log)
+      function = LoxFunction.new(method, env, method.name.lexeme == "init", @log)
       methods[method.name.lexeme] = function
     end
 
-    klass = LoxClass.new(stmt.name.lexeme, methods)
+    klass = LoxClass.new(stmt.name.lexeme, superclass, methods)
     env.assign(stmt.name, klass)
   end
 
@@ -322,7 +329,7 @@ class Crylox::Interpreter
   end
 
   def visit_lambda(expr : Expr::Lambda)
-    LoxFunction.new(expr, env, @log)
+    LoxFunction.new(expr, env, false, @log)
   end
 
   def visit_comment(expr : Expr::Comment)
@@ -346,6 +353,13 @@ class Crylox::Interpreter
 
     value = evaluate(expr.value)
     obj.set(expr.name, value)
+  end
+
+  def visit_super(expr : Expr::Super)
+  end
+
+  def visit_this(expr : Expr::This)
+    lookup_variable(expr.keyword, expr)
   end
 
   # Helper methods
